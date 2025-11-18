@@ -1,0 +1,78 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "strands-nova"
+version = "0.1.0"
+description = "Amazon Nova API model provider for Strands Agents SDK"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    { name = "RyanDsilva", email = "contact@ryandsilva.dev" }
+]
+keywords = ["strands", "agents", "nova", "aws", "ai", "llm"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "strands-agents",
+    "httpx>=0.28.1",
+    "pydantic>=2.12.4",
+]
+
+[project.urls]
+Homepage = "https://github.com/RyanDsilva/strands-nova"
+Documentation = "https://github.com/RyanDsilva/strands-nova#readme"
+Repository = "https://github.com/RyanDsilva/strands-nova"
+Issues = "https://github.com/RyanDsilva/strands-nova/issues"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0.1",
+    "pytest-asyncio>=1.3.0",
+    "pytest-cov>=7.0.0",
+    "pytest-mock>=3.15.1",
+    "black>=25.11.0",
+    "ruff>=0.14.5",
+    "mypy>=1.18.2",
+    "twine>=6.2.0",
+    "build>=1.3.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/strands_nova"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.black]
+line-length = 120
+target-version = ["py310", "py311", "py312", "py314"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.14"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true

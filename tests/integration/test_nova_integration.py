@@ -1,0 +1,217 @@
+"""Integration tests for Nova model provider."""
+
+import os
+
+import pytest
+
+from strands_nova import NovaModel
+
+
+@pytest.fixture
+def nova_api_key():
+    """Get Nova API key from environment."""
+    api_key = os.getenv("NOVA_API_KEY")
+    if not api_key:
+        pytest.skip("NOVA_API_KEY not set")
+    return api_key
+
+
+@pytest.fixture
+def nova_model(nova_api_key):
+    """Create a NovaModel instance for integration testing."""
+    return NovaModel(api_key=nova_api_key, model="nova-premier-v1")
+
+
+@pytest.mark.asyncio
+async def test_basic_streaming(nova_model):
+    """Test basic streaming functionality with real API."""
+    prompt = "Hello! Please respond with a brief greeting."
+
+    response_chunks = []
+    async for event in nova_model.stream(prompt):
+        if event.get("type") == "text":
+            response_chunks.append(event["text"])
+
+    # Check we got a response
+    assert len(response_chunks) > 0
+
+    # Combine chunks to get full response
+    full_response = "".join(response_chunks)
+    assert len(full_response) > 0
+
+
+@pytest.mark.asyncio
+async def test_streaming_with_system_prompt(nova_model):
+    """Test streaming with system prompt."""
+    prompt = "What is 2 + 2?"
+    system_prompt = "You are a helpful math tutor. Answer briefly."
+
+    response_chunks = []
+    async for event in nova_model.stream(prompt, system_prompt=system_prompt):
+        if event.get("type") == "text":
+            response_chunks.append(event["text"])
+
+    # Check we got a response
+    assert len(response_chunks) > 0
+
+    # Combine chunks and check for "4" in response
+    full_response = "".join(response_chunks).lower()
+    assert "4" in full_response or "four" in full_response
+
+
+@pytest.mark.asyncio
+async def test_temperature_parameter(nova_model):
+    """Test that temperature parameter affects output."""
+    prompt = "Tell me a creative story in one sentence."
+
+    # Low temperature (more deterministic)
+    nova_model.update_config(temperature=0.1)
+    response1_chunks = []
+    async for event in nova_model.stream(prompt):
+        if event.get("type") == "text":
+            response1_chunks.append(event["text"])
+
+    response1 = "".join(response1_chunks)
+
+    # High temperature (more creative)
+    nova_model.update_config(temperature=0.9)
+    response2_chunks = []
+    async for event in nova_model.stream(prompt):
+        if event.get("type") == "text":
+            response2_chunks.append(event["text"])
+
+    response2 = "".join(response2_chunks)
+
+    # Both should produce responses
+    assert len(response1) > 0
+    assert len(response2) > 0
+
+
+@pytest.mark.asyncio
+async def test_max_tokens_limit(nova_model):
+    """Test that max_tokens parameter limits output."""
+    prompt = "Count from 1 to 100 slowly, one number per line."
+
+    # Set a low token limit
+    nova_model.update_config(max_tokens=50)
+
+    response_chunks = []
+    async for event in nova_model.stream(prompt):
+        if event.get("type") == "text":
+            response_chunks.append(event["text"])
+
+    # Check we got a response
+    assert len(response_chunks) > 0
+
+    # Response should be limited (not reach 100)
+    full_response = "".join(response_chunks)
+    assert "100" not in full_response  # Shouldn't reach 100 with token limit
+
+
+@pytest.mark.asyncio
+async def test_model_configuration(nova_model):
+    """Test getting and updating model configuration."""
+    # Get initial config
+    initial_config = nova_model.get_config()
+    assert initial_config["model"] == "nova-premier-v1"
+    assert "temperature" in initial_config
+    assert "max_tokens" in initial_config
+
+    # Update config
+    nova_model.update_config(temperature=0.5, max_tokens=2048, top_p=0.8)
+
+    # Verify updates
+    updated_config = nova_model.get_config()
+    assert updated_config["temperature"] == 0.5
+    assert updated_config["max_tokens"] == 2048
+    assert updated_config["top_p"] == 0.8
+
+
+@pytest.mark.asyncio
+async def test_reasoning_model(nova_api_key):
+    """Test reasoning model with reasoning_effort parameter."""
+    reasoning_model = NovaModel(api_key=nova_api_key, model="nova-pro-v3", reasoning_effort="medium")
+
+    prompt = "What is the sum of the first 10 prime numbers?"
+    response_chunks = []
+    async for event in reasoning_model.stream(prompt):
+        if event.get("type") == "text":
+            response_chunks.append(event["text"])
+
+    full_response = "".join(response_chunks)
+    assert len(full_response) > 0
+    # The answer should be 129 (2+3+5+7+11+13+17+19+23+29)
+    assert "129" in full_response
+
+
+@pytest.mark.asyncio
+async def test_web_search_integration(nova_api_key):
+    """Test web search integration."""
+    web_model = NovaModel(
+        api_key=nova_api_key, model="nova-premier-v1", web_search_options={"enabled": True, "freshness": "recent"}
+    )
+
+    prompt = "What is the latest news about artificial intelligence?"
+    response_chunks = []
+    async for event in web_model.stream(prompt):
+        if event.get("type") == "text":
+            response_chunks.append(event["text"])
+
+    full_response = "".join(response_chunks)
+    assert len(full_response) > 0
+
+
+@pytest.mark.asyncio
+async def test_tool_calling(nova_model):
+    """Test tool calling functionality."""
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "get_weather",
+                "description": "Get the current weather for a location",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"location": {"type": "string", "description": "The city name"}},
+                    "required": ["location"],
+                },
+            },
+        }
+    ]
+
+    prompt = "What's the weather in Seattle?"
+
+    events = []
+    async for event in nova_model.stream(prompt, tools=tools):
+        events.append(event)
+
+    # Should get a tool_use event
+    tool_events = [e for e in events if e.get("type") == "tool_use"]
+    assert len(tool_events) > 0
+
+    # Verify tool call structure
+    tool_call = tool_events[0]
+    assert tool_call["name"] == "get_weather"
+    assert "location" in tool_call["input"]
+
+
+@pytest.mark.asyncio
+async def test_structured_output_not_supported(nova_model):
+    """Test that structured output is not yet supported."""
+    from pydantic import BaseModel
+
+    class TestOutput(BaseModel):
+        answer: str
+
+    with pytest.raises(NotImplementedError, match="Structured output is not yet supported"):
+        async for _ in nova_model.structured_output(TestOutput, "Test prompt"):
+            pass
+
+
+def test_model_string_representation(nova_model):
+    """Test string representation of the model."""
+    model_str = str(nova_model)
+    assert "NovaModel" in model_str
+    assert "nova-premier-v1" in model_str
+    assert "temperature" in model_str.lower()
+    assert "max_tokens" in model_str.lower()
