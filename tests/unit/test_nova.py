@@ -3,9 +3,12 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from strands.types.exceptions import (
+    ContextWindowOverflowException,
+    ModelThrottledException,
+)
 
 from strands_nova import NovaModel, NovaModelError
-from strands.types.exceptions import ContextWindowOverflowException, ModelThrottledException
 
 
 @pytest.fixture
@@ -39,22 +42,14 @@ def test_initialization_with_params():
 
 def test_initialization_with_reasoning_effort():
     """Test NovaModel initialization with reasoning_effort parameter."""
-    model = NovaModel(
-        api_key="test-key",
-        model="mumbai-flintflex-reasoning-v3",
-        reasoning_effort="medium"
-    )
+    model = NovaModel(api_key="test-key", model="mumbai-flintflex-reasoning-v3", reasoning_effort="medium")
     assert model.reasoning_effort == "medium"
 
 
 def test_initialization_with_web_search():
     """Test NovaModel initialization with web_search_options parameter."""
     web_search_opts = {"search_context_size": "low"}
-    model = NovaModel(
-        api_key="test-key",
-        model="nova-premier-v1",
-        web_search_options=web_search_opts
-    )
+    model = NovaModel(api_key="test-key", model="nova-premier-v1", web_search_options=web_search_opts)
     assert model.web_search_options == web_search_opts
 
 
@@ -62,6 +57,7 @@ def test_initialization_without_api_key():
     """Test NovaModel initialization without API key."""
     # Temporarily remove NOVA_API_KEY from environment
     import os
+
     with patch.dict(os.environ, {"NOVA_API_KEY": ""}, clear=False):
         # Ensure the key is actually removed
         if "NOVA_API_KEY" in os.environ:
@@ -84,7 +80,7 @@ async def test_stream_with_successful_response(nova_model):
         yield b'data: {"choices":[{"delta":{"content":" world"}}]}\n\n'
         yield b'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n'
         yield b'data: {"usage":{"prompt_tokens":10,"completion_tokens":20,"total_tokens":30}}\n\n'
-        yield b'data: [DONE]\n\n'
+        yield b"data: [DONE]\n\n"
 
     mock_response.aiter_bytes = mock_aiter
 
@@ -246,10 +242,8 @@ async def test_stream_with_tools(nova_model):
             "description": "Get current weather",
             "inputSchema": {  # Strands SDK uses inputSchema
                 "type": "object",
-                "properties": {
-                    "location": {"type": "string"}
-                }
-            }
+                "properties": {"location": {"type": "string"}},
+            },
         }
     ]
 
@@ -283,13 +277,9 @@ async def test_tool_spec_conversion(nova_model):
             "description": "Perform calculations",
             "inputSchema": {
                 "type": "object",
-                "properties": {
-                    "operation": {"type": "string"},
-                    "x": {"type": "number"},
-                    "y": {"type": "number"}
-                },
-                "required": ["operation", "x", "y"]
-            }
+                "properties": {"operation": {"type": "string"}, "x": {"type": "number"}, "y": {"type": "number"}},
+                "required": ["operation", "x", "y"],
+            },
         }
     ]
 
@@ -357,7 +347,11 @@ async def test_stream_with_tool_calls(nova_model):
             events.append(event)
 
         # Verify tool-related events
-        tool_start_events = [e for e in events if "contentBlockStart" in e and "toolUse" in e.get("contentBlockStart", {}).get("start", {})]
+        tool_start_events = [
+            e
+            for e in events
+            if "contentBlockStart" in e and "toolUse" in e.get("contentBlockStart", {}).get("start", {})
+        ]
         assert len(tool_start_events) > 0, "Should have tool start event"
 
         # Verify tool use structure
@@ -387,15 +381,9 @@ async def test_stream_with_system_prompt_content(nova_model):
         mock_client.return_value.__aenter__.return_value = mock_instance
 
         # Use system_prompt_content
-        system_content = [
-            {"text": "You are a helpful assistant."},
-            {"text": "Always be concise."}
-        ]
+        system_content = [{"text": "You are a helpful assistant."}, {"text": "Always be concise."}]
 
-        async for event in nova_model.stream(
-            "Test prompt",
-            system_prompt_content=system_content
-        ):
+        async for event in nova_model.stream("Test prompt", system_prompt_content=system_content):
             pass
 
         # Verify system messages were included
@@ -445,11 +433,7 @@ def test_get_config(nova_model):
 
 def test_get_config_with_reasoning_effort():
     """Test getting model configuration with reasoning_effort."""
-    model = NovaModel(
-        api_key="test-key",
-        model="mumbai-flintflex-reasoning-v3",
-        reasoning_effort="high"
-    )
+    model = NovaModel(api_key="test-key", model="mumbai-flintflex-reasoning-v3", reasoning_effort="high")
     config = model.get_config()
     assert config["reasoning_effort"] == "high"
 
@@ -457,10 +441,6 @@ def test_get_config_with_reasoning_effort():
 def test_get_config_with_web_search():
     """Test getting model configuration with web_search_options."""
     web_search_opts = {"search_context_size": "medium"}
-    model = NovaModel(
-        api_key="test-key",
-        model="nova-premier-v1",
-        web_search_options=web_search_opts
-    )
+    model = NovaModel(api_key="test-key", model="nova-premier-v1", web_search_options=web_search_opts)
     config = model.get_config()
     assert config["web_search_options"] == web_search_opts

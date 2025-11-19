@@ -123,8 +123,9 @@ async def test_max_tokens_limit(nova_model):
     # Check if the model actually counted to 100 by looking for numbers on their own lines
     # (not numbers embedded in prose like "count from 1 to 100")
     import re
+
     # Find numbers that appear on their own lines (with newline before and after)
-    line_numbers = re.findall(r'(?:^|\n)(\d+)(?:\n|$)', full_response)
+    line_numbers = re.findall(r"(?:^|\n)(\d+)(?:\n|$)", full_response)
     if line_numbers:
         # Convert to integers and get the max number counted to
         max_number = max(int(n) for n in line_numbers)
@@ -222,8 +223,7 @@ async def test_tool_calling(nova_model):
 
     # Should get a contentBlockStart event with toolUse
     tool_start_events = [
-        e for e in events
-        if "contentBlockStart" in e and "toolUse" in e["contentBlockStart"].get("start", {})
+        e for e in events if "contentBlockStart" in e and "toolUse" in e["contentBlockStart"].get("start", {})
     ]
 
     if len(tool_start_events) > 0:

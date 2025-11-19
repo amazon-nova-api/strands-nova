@@ -2,7 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/strands-nova.svg)](https://badge.fury.io/py/strands-nova)
 [![Python Support](https://img.shields.io/pypi/pyversions/strands-nova.svg)](https://pypi.org/project/strands-nova/)
-[![Tests](https://github.com/aidendef/strands-nova/actions/workflows/test.yml/badge.svg)](https://github.com/aidendef/strands-nova/actions/workflows/test.yml)
+[![Tests](https://github.com/RyanDsilva/strands-nova/actions/workflows/test.yml/badge.svg)](https://github.com/RyanDsilva/strands-nova/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Amazon Nova API model provider for [Strands Agents SDK](https://github.com/strands-agents/sdk-python)

@@ -8,7 +8,7 @@ from typing import Any, AsyncGenerator, AsyncIterable, Dict, List, Optional, Typ
 import httpx
 from pydantic import BaseModel
 from strands.models.model import Model
-from strands.types.content import ContentBlock, Messages, SystemContentBlock
+from strands.types.content import Messages, SystemContentBlock
 from strands.types.exceptions import ContextWindowOverflowException, ModelThrottledException
 from strands.types.streaming import (
     ContentBlockDelta,
@@ -33,7 +33,7 @@ class NovaModelError(Exception):
 
 class NovaModel(Model):
     """Amazon Nova API model provider implementation.
-    
+
     Nova API is an OpenAI-compatible API that provides access to Amazon's
     Nova family of models, including Nova Pro, Nova Premier, and specialized
     models for reasoning and image generation.
@@ -54,7 +54,7 @@ class NovaModel(Model):
         """Initialize Nova model.
 
         Args:
-            model: Model ID (e.g., "nova-premier-v1", "Nova Pro v3 (6.x)", 
+            model: Model ID (e.g., "nova-premier-v1", "Nova Pro v3 (6.x)",
                    "mumbai-flintflex-reasoning-v3")
             api_key: Nova API key (can be set via NOVA_API_KEY env var)
             temperature: Sampling temperature (0.0-1.0)
@@ -113,12 +113,12 @@ class NovaModel(Model):
             "stop": self.stop,
             **self.additional_params,
         }
-        
+
         if self.reasoning_effort:
             config["reasoning_effort"] = self.reasoning_effort
         if self.web_search_options:
             config["web_search_options"] = self.web_search_options
-            
+
         return config
 
     def _convert_messages_to_nova_format(
@@ -199,9 +199,7 @@ class NovaModel(Model):
 
         return nova_tools
 
-    def _format_tool_choice(
-        self, tool_choice: Optional[ToolChoice]
-    ) -> Union[str, Dict[str, Any]]:
+    def _format_tool_choice(self, tool_choice: Optional[ToolChoice]) -> Union[str, Dict[str, Any]]:
         """Convert Strands ToolChoice to Nova/OpenAI format.
 
         Strands formats:
@@ -226,10 +224,7 @@ class NovaModel(Model):
 
         if "tool" in tool_choice:
             tool_name = tool_choice["tool"]["name"]
-            return {
-                "type": "function",
-                "function": {"name": tool_name}
-            }
+            return {"type": "function", "function": {"name": tool_name}}
 
         logger.warning(f"Unknown tool_choice format: {tool_choice}, defaulting to 'auto'")
         return "auto"
@@ -269,10 +264,7 @@ class NovaModel(Model):
         if system_prompt_content:
             for block in system_prompt_content:
                 if "text" in block:
-                    system_messages.append({
-                        "role": "system",
-                        "content": block["text"]
-                    })
+                    system_messages.append({"role": "system", "content": block["text"]})
             logger.debug(f"Added {len(system_prompt_content)} system prompt content blocks")
 
         # Convert messages to Nova format
@@ -301,9 +293,7 @@ class NovaModel(Model):
             if nova_tools:
                 request_body["tools"] = nova_tools
                 # Use proper tool_choice conversion
-                request_body["tool_choice"] = self._format_tool_choice(
-                    kwargs.get("tool_choice", tool_choice)
-                )
+                request_body["tool_choice"] = self._format_tool_choice(kwargs.get("tool_choice", tool_choice))
                 logger.debug(f"Added {len(nova_tools)} tools with choice: {request_body['tool_choice']}")
 
         # Add reasoning effort for reasoning models
@@ -316,9 +306,7 @@ class NovaModel(Model):
 
         # Add web search options if configured
         if self.web_search_options or kwargs.get("web_search_options"):
-            request_body["web_search_options"] = kwargs.get(
-                "web_search_options", self.web_search_options
-            )
+            request_body["web_search_options"] = kwargs.get("web_search_options", self.web_search_options)
 
         # Add stream options to include usage info
         request_body["stream_options"] = {"include_usage": True}
@@ -344,7 +332,7 @@ class NovaModel(Model):
                     # Handle authentication errors (Nova returns 500 for invalid API keys)
                     if response.status_code in [401, 500]:
                         error_text = await response.aread()
-                        error_body = error_text.decode('utf-8')
+                        error_body = error_text.decode("utf-8")
 
                         # Check if it's an auth error (HTML response with "Login Provider Error")
                         if "Login Provider Error" in error_body or response.status_code == 401:
@@ -360,32 +348,29 @@ class NovaModel(Model):
                     # Handle model not found (404)
                     if response.status_code == 404:
                         error_text = await response.aread()
-                        error_body = error_text.decode('utf-8')
+                        error_body = error_text.decode("utf-8")
                         logger.error(f"Model not found: {self.model}")
-                        raise NovaModelError(
-                            f"Model '{self.model}' not found or access denied. {error_body}"
-                        )
+                        raise NovaModelError(f"Model '{self.model}' not found or access denied. {error_body}")
 
                     # Handle rate limiting (429)
                     if response.status_code == 429:
                         error_text = await response.aread()
                         logger.warning("Nova API rate limit exceeded")
-                        raise ModelThrottledException(
-                            f"Nova API rate limit exceeded: {error_text.decode('utf-8')}"
-                        )
+                        raise ModelThrottledException(f"Nova API rate limit exceeded: {error_text.decode('utf-8')}")
 
                     # Handle bad requests (400)
                     if response.status_code == 400:
                         error_text = await response.aread()
-                        error_body = error_text.decode('utf-8')
+                        error_body = error_text.decode("utf-8")
 
                         # Check if it's a context length error
                         # TODO: Need to verify exact error message format for context overflow
-                        if any(keyword in error_body.lower() for keyword in ["context", "maximum", "token limit", "exceeds"]):
+                        if any(
+                            keyword in error_body.lower()
+                            for keyword in ["context", "maximum", "token limit", "exceeds"]
+                        ):
                             logger.error(f"Context window exceeded: {error_body}")
-                            raise ContextWindowOverflowException(
-                                f"Context window exceeded: {error_body}"
-                            )
+                            raise ContextWindowOverflowException(f"Context window exceeded: {error_body}")
 
                         logger.error(f"Bad request: {error_body}")
                         raise NovaModelError(f"Bad request: {error_body}")
@@ -470,7 +455,7 @@ class NovaModel(Model):
                                                 accumulated_tool_calls[index] = {
                                                     "id": None,
                                                     "name": None,
-                                                    "arguments": ""
+                                                    "arguments": "",
                                                 }
 
                                             # First chunk of a tool call (has id and name)
@@ -481,7 +466,9 @@ class NovaModel(Model):
                                                 accumulated_tool_calls[index]["name"] = tool_call["function"]["name"]
 
                                                 # Emit content block start for tool
-                                                logger.debug(f"Emitting contentBlockStart for tool: {tool_call['function']['name']}")
+                                                logger.debug(
+                                                    f"Emitting contentBlockStart for tool: {tool_call['function']['name']}"
+                                                )
                                                 tool_start_event: ContentBlockStartEvent = {
                                                     "start": {
                                                         "toolUse": {
@@ -500,11 +487,7 @@ class NovaModel(Model):
                                                     accumulated_tool_calls[index]["arguments"] += arguments
 
                                                     # Emit tool input delta
-                                                    tool_delta: ContentBlockDelta = {
-                                                        "toolUse": {
-                                                            "input": arguments
-                                                        }
-                                                    }
+                                                    tool_delta: ContentBlockDelta = {"toolUse": {"input": arguments}}
                                                     tool_delta_event: ContentBlockDeltaEvent = {"delta": tool_delta}
                                                     yield {"contentBlockDelta": tool_delta_event}
 
