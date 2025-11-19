@@ -1,6 +1,6 @@
 """Unit tests for Nova API model provider."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -60,8 +60,14 @@ def test_initialization_with_web_search():
 
 def test_initialization_without_api_key():
     """Test NovaModel initialization without API key."""
-    with pytest.raises(ValueError, match="Nova API key is required"):
-        NovaModel(model="nova-premier-v1")
+    # Temporarily remove NOVA_API_KEY from environment
+    import os
+    with patch.dict(os.environ, {"NOVA_API_KEY": ""}, clear=False):
+        # Ensure the key is actually removed
+        if "NOVA_API_KEY" in os.environ:
+            del os.environ["NOVA_API_KEY"]
+        with pytest.raises(ValueError, match="Nova API key is required"):
+            NovaModel(model="nova-premier-v1")
 
 
 @pytest.mark.asyncio
@@ -83,10 +89,10 @@ async def test_stream_with_successful_response(nova_model):
     mock_response.aiter_bytes = mock_aiter
 
     with patch("httpx.AsyncClient") as mock_client:
-        mock_instance = AsyncMock()
+        mock_instance = MagicMock()
         mock_stream = AsyncMock()
         mock_stream.__aenter__.return_value = mock_response
-        mock_instance.stream = AsyncMock(return_value=mock_stream)
+        mock_instance.stream.return_value = mock_stream
         mock_client.return_value.__aenter__.return_value = mock_instance
 
         events = []
@@ -118,10 +124,10 @@ async def test_stream_with_authentication_error(nova_model):
     mock_response.aread = AsyncMock(return_value=b"Unauthorized")
 
     with patch("httpx.AsyncClient") as mock_client:
-        mock_instance = AsyncMock()
+        mock_instance = MagicMock()
         mock_stream = AsyncMock()
         mock_stream.__aenter__.return_value = mock_response
-        mock_instance.stream = AsyncMock(return_value=mock_stream)
+        mock_instance.stream.return_value = mock_stream
         mock_client.return_value.__aenter__.return_value = mock_instance
 
         with pytest.raises(NovaModelError, match="Authentication failed"):
@@ -137,10 +143,10 @@ async def test_stream_with_rate_limit_error(nova_model):
     mock_response.aread = AsyncMock(return_value=b"Rate limit exceeded")
 
     with patch("httpx.AsyncClient") as mock_client:
-        mock_instance = AsyncMock()
+        mock_instance = MagicMock()
         mock_stream = AsyncMock()
         mock_stream.__aenter__.return_value = mock_response
-        mock_instance.stream = AsyncMock(return_value=mock_stream)
+        mock_instance.stream.return_value = mock_stream
         mock_client.return_value.__aenter__.return_value = mock_instance
 
         with pytest.raises(ModelThrottledException, match="rate limit exceeded"):
@@ -156,10 +162,10 @@ async def test_stream_with_context_overflow_error(nova_model):
     mock_response.aread = AsyncMock(return_value=b"Context window exceeded maximum token limit")
 
     with patch("httpx.AsyncClient") as mock_client:
-        mock_instance = AsyncMock()
+        mock_instance = MagicMock()
         mock_stream = AsyncMock()
         mock_stream.__aenter__.return_value = mock_response
-        mock_instance.stream = AsyncMock(return_value=mock_stream)
+        mock_instance.stream.return_value = mock_stream
         mock_client.return_value.__aenter__.return_value = mock_instance
 
         with pytest.raises(ContextWindowOverflowException, match="Context window exceeded"):
@@ -175,10 +181,10 @@ async def test_stream_with_model_not_found_error(nova_model):
     mock_response.aread = AsyncMock(return_value=b"Model not found")
 
     with patch("httpx.AsyncClient") as mock_client:
-        mock_instance = AsyncMock()
+        mock_instance = MagicMock()
         mock_stream = AsyncMock()
         mock_stream.__aenter__.return_value = mock_response
-        mock_instance.stream = AsyncMock(return_value=mock_stream)
+        mock_instance.stream.return_value = mock_stream
         mock_client.return_value.__aenter__.return_value = mock_instance
 
         with pytest.raises(NovaModelError, match="Model.*not found"):
@@ -200,10 +206,10 @@ async def test_stream_with_system_message(nova_model):
     mock_response.aiter_bytes = mock_aiter
 
     with patch("httpx.AsyncClient") as mock_client:
-        mock_instance = AsyncMock()
+        mock_instance = MagicMock()
         mock_stream = AsyncMock()
         mock_stream.__aenter__.return_value = mock_response
-        mock_instance.stream = AsyncMock(return_value=mock_stream)
+        mock_instance.stream.return_value = mock_stream
         mock_client.return_value.__aenter__.return_value = mock_instance
 
         result = ""
@@ -248,10 +254,10 @@ async def test_stream_with_tools(nova_model):
     ]
 
     with patch("httpx.AsyncClient") as mock_client:
-        mock_instance = AsyncMock()
+        mock_instance = MagicMock()
         mock_stream = AsyncMock()
         mock_stream.__aenter__.return_value = mock_response
-        mock_instance.stream = AsyncMock(return_value=mock_stream)
+        mock_instance.stream.return_value = mock_stream
         mock_client.return_value.__aenter__.return_value = mock_instance
 
         async for event in nova_model.stream("What's the weather?", tool_specs=tool_specs):
@@ -340,10 +346,10 @@ async def test_stream_with_tool_calls(nova_model):
     mock_response.aiter_bytes = mock_aiter
 
     with patch("httpx.AsyncClient") as mock_client:
-        mock_instance = AsyncMock()
+        mock_instance = MagicMock()
         mock_stream = AsyncMock()
         mock_stream.__aenter__.return_value = mock_response
-        mock_instance.stream = AsyncMock(return_value=mock_stream)
+        mock_instance.stream.return_value = mock_stream
         mock_client.return_value.__aenter__.return_value = mock_instance
 
         events = []
@@ -374,10 +380,10 @@ async def test_stream_with_system_prompt_content(nova_model):
     mock_response.aiter_bytes = mock_aiter
 
     with patch("httpx.AsyncClient") as mock_client:
-        mock_instance = AsyncMock()
+        mock_instance = MagicMock()
         mock_stream = AsyncMock()
         mock_stream.__aenter__.return_value = mock_response
-        mock_instance.stream = AsyncMock(return_value=mock_stream)
+        mock_instance.stream.return_value = mock_stream
         mock_client.return_value.__aenter__.return_value = mock_instance
 
         # Use system_prompt_content

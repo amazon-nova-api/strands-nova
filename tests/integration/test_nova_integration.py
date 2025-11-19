@@ -120,7 +120,18 @@ async def test_max_tokens_limit(nova_model):
 
     # Response should be limited (not reach 100)
     full_response = "".join(response_chunks)
-    assert "100" not in full_response  # Shouldn't reach 100 with token limit
+    # Check if the model actually counted to 100 by looking for numbers on their own lines
+    # (not numbers embedded in prose like "count from 1 to 100")
+    import re
+    # Find numbers that appear on their own lines (with newline before and after)
+    line_numbers = re.findall(r'(?:^|\n)(\d+)(?:\n|$)', full_response)
+    if line_numbers:
+        # Convert to integers and get the max number counted to
+        max_number = max(int(n) for n in line_numbers)
+        # With 50 tokens, shouldn't reach 100 (should stop much earlier)
+        assert max_number < 100, f"Expected to stop before 100, but counted to {max_number}"
+    # Check the response is reasonably short given the token limit
+    assert len(full_response) < 500, "Response should be limited with max_tokens=50"
 
 
 @pytest.mark.asyncio
