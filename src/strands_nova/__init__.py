@@ -9,7 +9,7 @@ from typing import Optional
 
 from .nova import NovaModel, NovaModelError
 
-__version__ = "0.1.2"
+__version__ = "0.1.0"
 __all__ = ["NovaModel", "NovaModelError"]
 
 

@@ -104,7 +104,7 @@ model = NovaModel(
     max_tokens=4096,             # Maximum tokens to generate
     top_p=0.9,                   # Nucleus sampling parameter
     stop=["\\n\\n"],             # Stop sequences
-    reasoning_effort="medium",   # For reasoning models: low/medium/high
+    reasoning_effort="medium",   # For reasoning models: low/medium/high (NOTE: Not currently supported)
     web_search_options={         # Enable web search
         "search_context_size": "low"
     }
@@ -113,10 +113,15 @@ model = NovaModel(
 
 ### Available Models
 
-- **nova-premier-v1** - Advanced model for complex tasks
-- **Nova Pro v3 (6.x)** - High-performance model
-- **mumbai-flintflex-reasoning-v3** - Specialized reasoning model
+- **nova-premier-v1** - Most capable model with 1M token context window
+- **nova-pro-v1** - Multimodal model (text, images, videos) with 300K context
+- **nova-lite-v1** - Multimodal model with 300K context
+- **nova-micro-v1** - Text-only model with 128K context
+- **Nova Pro v3** - Latest Nova Pro version
 - **nova-orchestrator-v1** - Image generation capabilities
+- **nova-deep-research-v1** - Long research tasks
+
+**Note**: Reasoning models are not yet available. Waiting on model name from AWS.
 
 Discover available models:
 ```bash
@@ -142,14 +147,17 @@ print(config)
 
 ### Reasoning Model
 
+**Note**: Reasoning models are not yet available. The `reasoning_effort` parameter is implemented but not supported by current models.
+
 ```python
 from strands_nova import NovaModel
 from strands import Agent
 
+# TODO: Update with actual reasoning model name when available from AWS
 model = NovaModel(
     api_key="your-api-key",
-    model="mumbai-flintflex-reasoning-v3",
-    reasoning_effort="high"
+    model="nova-premier-v1",  # Placeholder until reasoning model is available
+    # reasoning_effort="high"  # Not currently supported - will raise error
 )
 agent = Agent(model=model)
 
@@ -179,12 +187,12 @@ from strands import Agent
 
 model = NovaModel(api_key="your-api-key")
 
-# Define tools
-tools = [
+# Define tool specs using Strands SDK format
+tool_specs = [
     {
         "name": "get_weather",
         "description": "Get current weather for a location",
-        "parameters": {
+        "inputSchema": {  # Note: Strands SDK uses "inputSchema" not "parameters"
             "type": "object",
             "properties": {
                 "location": {
@@ -198,7 +206,7 @@ tools = [
 ]
 
 # Use with agent
-agent = Agent(model=model, tools=tools)
+agent = Agent(model=model, tools=tool_specs)
 response = await agent.invoke_async("What's the weather in Tokyo?")
 ```
 
@@ -244,7 +252,12 @@ Main model class that implements the Strands `Model` abstract base class.
 
 #### Methods
 
-- `stream(messages, tool_specs, system_prompt, **kwargs)` - Stream responses from Nova API
+- `stream(messages, tool_specs, system_prompt, tool_choice, system_prompt_content, **kwargs)` - Stream responses from Nova API
+  - `messages` - Messages to process
+  - `tool_specs` - List of tool specifications (Strands SDK format with `inputSchema`)
+  - `system_prompt` - Optional system message (text)
+  - `tool_choice` - Optional tool choice strategy (auto/any/specific tool)
+  - `system_prompt_content` - Optional structured system prompt content blocks
 - `get_config()` - Get current model configuration
 - `update_config(**kwargs)` - Update model configuration
 - `structured_output()` - Not yet implemented (raises NotImplementedError)
@@ -256,7 +269,7 @@ Main model class that implements the Strands `Model` abstract base class.
 - `temperature` - Controls randomness (0.0-1.0, default: 0.7)
 - `max_tokens` - Maximum tokens in response (default: 4096)
 - `top_p` - Nucleus sampling threshold (default: 0.9)
-- `reasoning_effort` - For reasoning models: "low", "medium", or "high"
+- `reasoning_effort` - For reasoning models: "low", "medium", or "high" (NOTE: Not currently supported)
 - `web_search_options` - Dict with web search config (e.g., {"search_context_size": "low"})
 - `stop` - List of stop sequences
 
@@ -268,12 +281,15 @@ Exception raised for Nova API-specific errors.
 
 ### Reasoning Models
 
-Use reasoning-optimized models for complex problem solving:
+**Note**: Reasoning models are not yet available. Waiting on model name from AWS.
+
+The `reasoning_effort` parameter is implemented but currently not supported by available models:
 
 ```python
+# TODO: Update when reasoning model is available
 model = NovaModel(
-    model="mumbai-flintflex-reasoning-v3",
-    reasoning_effort="high"  # low, medium, or high
+    model="nova-premier-v1",  # Placeholder
+    # reasoning_effort="high"  # Not currently supported - will raise error
 )
 ```
 

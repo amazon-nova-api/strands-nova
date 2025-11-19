@@ -120,6 +120,7 @@ venv.bak/
 
 # mkdocs documentation
 /site
+docs/
 
 # mypy
 .mypy_cache/
@@ -146,3 +147,7 @@ cython_debug/
 # Project specific
 *.bak
 .temp/
+
+# AI specific
+.claude
+.kiro

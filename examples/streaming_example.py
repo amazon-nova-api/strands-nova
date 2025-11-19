@@ -57,18 +57,25 @@ async def streaming_with_system_prompt():
 
 
 async def reasoning_model_example():
-    """Demonstrate reasoning model with reasoning_effort parameter."""
-    print("\n=== Reasoning Model Example ===\n")
-    
+    """Demonstrate reasoning model with reasoning_effort parameter.
+
+    NOTE: reasoning_effort parameter is currently not supported by available Nova models.
+    This example is a placeholder for when AWS releases a reasoning model.
+    TODO: Update model name when reasoning model is available from AWS.
+    """
+    print("\n=== Reasoning Model Example (PLACEHOLDER) ===\n")
+    print("NOTE: Reasoning models are not yet available. Using nova-premier-v1 instead.\n")
+
+    # TODO: Replace with actual reasoning model name when available
     model = NovaModel(
-        model="mumbai-flintflex-reasoning-v3",
-        reasoning_effort="medium",
+        model="nova-premier-v1",  # Placeholder until reasoning model is available
+        # reasoning_effort="medium",  # Currently not supported, will raise error
         temperature=0.5
     )
-    
+
     print("Question: What is the sum of all prime numbers between 1 and 100?\n")
     print("Response: ", end="", flush=True)
-    
+
     async for event in model.stream(
         "What is the sum of all prime numbers between 1 and 100?"
     ):
@@ -76,7 +83,7 @@ async def reasoning_model_example():
             delta = event["contentBlockDelta"]["delta"]
             if "text" in delta:
                 print(delta["text"], end="", flush=True)
-    
+
     print("\n")
 
 
@@ -113,7 +120,7 @@ async def main():
     if not os.getenv("NOVA_API_KEY"):
         print("Error: NOVA_API_KEY not found in environment variables.")
         print("Please set: export NOVA_API_KEY='your-api-key'")
-        print("Get your API key from: https://internal.nova.amazon.com/apis")
+        print("Get your API key from: https://nova.amazon.com/apis")
         return
     
     # Run examples

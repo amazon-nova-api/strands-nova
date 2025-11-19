@@ -18,7 +18,7 @@ async def main():
     if not os.getenv("NOVA_API_KEY"):
         print("Error: NOVA_API_KEY not found in environment variables.")
         print("Please set: export NOVA_API_KEY='your-api-key'")
-        print("Get your API key from: https://internal.nova.amazon.com/apis")
+        print("Get your API key from: https://nova.amazon.com/apis")
         return
     
     print("=== Basic Nova API Example ===\n")
