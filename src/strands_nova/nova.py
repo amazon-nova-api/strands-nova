@@ -49,6 +49,8 @@ class NovaModel(Model):
         reasoning_effort: Optional[str] = None,
         web_search_options: Optional[Dict[str, Any]] = None,
         stop: Optional[List[str]] = None,
+        base_url: Optional[str] = None,
+        stream_options: Optional[Dict[str, Any]] = None,
         **kwargs: Any,
     ):
         """Initialize Nova model.
@@ -65,6 +67,8 @@ class NovaModel(Model):
                 TODO: Waiting on reasoning model name from AWS.
             web_search_options: Web search configuration (e.g., {"search_context_size": "low"})
             stop: List of stop sequences
+            base_url: Custom API base URL (default: "https://api.nova.amazon.com/v1/chat/completions")
+            stream_options: Streaming options (e.g., {"include_usage": True})
             **kwargs: Additional parameters
         """
         self.model = model
@@ -81,7 +85,8 @@ class NovaModel(Model):
         self.reasoning_effort = reasoning_effort
         self.web_search_options = web_search_options
         self.stop = stop or []
-        self.base_url = "https://api.nova.amazon.com/v1/chat/completions"
+        self.base_url = base_url or "https://api.nova.amazon.com/v1/chat/completions"
+        self.stream_options = stream_options if stream_options is not None else {"include_usage": True}
         self.models_url = "https://api.nova.amazon.com/v1/models"
 
         # Store additional kwargs for future use
@@ -111,6 +116,8 @@ class NovaModel(Model):
             "max_tokens": self.max_tokens,
             "top_p": self.top_p,
             "stop": self.stop,
+            "base_url": self.base_url,
+            "stream_options": self.stream_options,
             **self.additional_params,
         }
 
@@ -223,8 +230,13 @@ class NovaModel(Model):
             return "required"  # OpenAI/Nova equivalent of "any"
 
         if "tool" in tool_choice:
-            tool_name = tool_choice["tool"]["name"]
-            return {"type": "function", "function": {"name": tool_name}}
+            tool_dict = tool_choice["tool"]
+            if isinstance(tool_dict, dict) and "name" in tool_dict:
+                tool_name = tool_dict["name"]
+                return {"type": "function", "function": {"name": tool_name}}
+            else:
+                logger.warning(f"Malformed tool_choice (missing 'name'): {tool_choice}, defaulting to 'auto'")
+                return "auto"
 
         logger.warning(f"Unknown tool_choice format: {tool_choice}, defaulting to 'auto'")
         return "auto"
@@ -308,8 +320,8 @@ class NovaModel(Model):
         if self.web_search_options or kwargs.get("web_search_options"):
             request_body["web_search_options"] = kwargs.get("web_search_options", self.web_search_options)
 
-        # Add stream options to include usage info
-        request_body["stream_options"] = {"include_usage": True}
+        # Add stream options (configurable, defaults to include usage info)
+        request_body["stream_options"] = kwargs.get("stream_options", self.stream_options)
 
         # Add any additional parameters
         for key, value in self.additional_params.items():
@@ -523,7 +535,10 @@ class NovaModel(Model):
                                             "inputTokens": data["usage"]["prompt_tokens"],
                                             "outputTokens": data["usage"]["completion_tokens"],
                                             "totalTokens": data["usage"]["total_tokens"],
-                                        }
+                                        },
+                                        "metrics": {
+                                            "latencyMs": 0  # Nova API doesn't provide latency in response
+                                        },
                                     }
                                     yield {"metadata": metadata_event}
 
