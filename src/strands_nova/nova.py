@@ -9,7 +9,10 @@ import httpx
 from pydantic import BaseModel
 from strands.models.model import Model
 from strands.types.content import Messages, SystemContentBlock
-from strands.types.exceptions import ContextWindowOverflowException, ModelThrottledException
+from strands.types.exceptions import (
+    ContextWindowOverflowException,
+    ModelThrottledException,
+)
 from strands.types.streaming import (
     ContentBlockDelta,
     ContentBlockDeltaEvent,
@@ -46,6 +49,7 @@ class NovaModel(Model):
         temperature: float = 0.7,
         max_tokens: int = 4096,
         top_p: float = 0.9,
+        stream: bool = False,
         reasoning_effort: Optional[str] = None,
         web_search_options: Optional[Dict[str, Any]] = None,
         stop: Optional[List[str]] = None,
@@ -62,6 +66,7 @@ class NovaModel(Model):
             temperature: Sampling temperature (0.0-1.0)
             max_tokens: Maximum number of tokens to generate
             top_p: Nucleus sampling parameter
+            stream: Whether to stream responses (default: False)
             reasoning_effort: For reasoning models: "low", "medium", or "high".
                 NOTE: Currently not supported by available models.
                 TODO: Waiting on reasoning model name from AWS.
@@ -82,11 +87,14 @@ class NovaModel(Model):
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.top_p = top_p
+        self._stream = stream  # Use _stream to avoid shadowing stream() method
         self.reasoning_effort = reasoning_effort
         self.web_search_options = web_search_options
         self.stop = stop or []
         self.base_url = base_url or "https://api.nova.amazon.com/v1/chat/completions"
-        self.stream_options = stream_options if stream_options is not None else {"include_usage": True}
+        self.stream_options = (
+            stream_options if stream_options is not None else {"include_usage": True}
+        )
         self.models_url = "https://api.nova.amazon.com/v1/models"
 
         # Store additional kwargs for future use
@@ -115,6 +123,7 @@ class NovaModel(Model):
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
             "top_p": self.top_p,
+            "stream": self._stream,
             "stop": self.stop,
             "base_url": self.base_url,
             "stream_options": self.stream_options,
@@ -198,7 +207,9 @@ class NovaModel(Model):
                 "function": {
                     "name": tool_spec["name"],
                     "description": tool_spec["description"],
-                    "parameters": tool_spec["inputSchema"],  # Convert inputSchema -> parameters
+                    "parameters": tool_spec[
+                        "inputSchema"
+                    ],  # Convert inputSchema -> parameters
                 },
             }
             nova_tools.append(nova_tool)
@@ -206,7 +217,9 @@ class NovaModel(Model):
 
         return nova_tools
 
-    def _format_tool_choice(self, tool_choice: Optional[ToolChoice]) -> Union[str, Dict[str, Any]]:
+    def _format_tool_choice(
+        self, tool_choice: Optional[ToolChoice]
+    ) -> Union[str, Dict[str, Any]]:
         """Convert Strands ToolChoice to Nova/OpenAI format.
 
         Strands formats:
@@ -235,10 +248,14 @@ class NovaModel(Model):
                 tool_name = tool_dict["name"]
                 return {"type": "function", "function": {"name": tool_name}}
             else:
-                logger.warning(f"Malformed tool_choice (missing 'name'): {tool_choice}, defaulting to 'auto'")
+                logger.warning(
+                    f"Malformed tool_choice (missing 'name'): {tool_choice}, defaulting to 'auto'"
+                )
                 return "auto"
 
-        logger.warning(f"Unknown tool_choice format: {tool_choice}, defaulting to 'auto'")
+        logger.warning(
+            f"Unknown tool_choice format: {tool_choice}, defaulting to 'auto'"
+        )
         return "auto"
 
     async def stream(
@@ -277,7 +294,9 @@ class NovaModel(Model):
             for block in system_prompt_content:
                 if "text" in block:
                     system_messages.append({"role": "system", "content": block["text"]})
-            logger.debug(f"Added {len(system_prompt_content)} system prompt content blocks")
+            logger.debug(
+                f"Added {len(system_prompt_content)} system prompt content blocks"
+            )
 
         # Convert messages to Nova format
         nova_messages = self._convert_messages_to_nova_format(messages)
@@ -292,7 +311,7 @@ class NovaModel(Model):
             "temperature": kwargs.get("temperature", self.temperature),
             "max_tokens": kwargs.get("max_tokens", self.max_tokens),
             "top_p": kwargs.get("top_p", self.top_p),
-            "stream": True,
+            "stream": self._stream,  # Always use instance setting
         }
 
         # Add stop sequences if provided
@@ -305,8 +324,12 @@ class NovaModel(Model):
             if nova_tools:
                 request_body["tools"] = nova_tools
                 # Use proper tool_choice conversion
-                request_body["tool_choice"] = self._format_tool_choice(kwargs.get("tool_choice", tool_choice))
-                logger.debug(f"Added {len(nova_tools)} tools with choice: {request_body['tool_choice']}")
+                request_body["tool_choice"] = self._format_tool_choice(
+                    kwargs.get("tool_choice", tool_choice)
+                )
+                logger.debug(
+                    f"Added {len(nova_tools)} tools with choice: {request_body['tool_choice']}"
+                )
 
         # Add reasoning effort for reasoning models
         # TODO: Waiting on reasoning model name from AWS. Currently not supported by available models.
@@ -314,14 +337,20 @@ class NovaModel(Model):
         if self.reasoning_effort or kwargs.get("reasoning_effort"):
             reasoning = kwargs.get("reasoning_effort", self.reasoning_effort)
             request_body["reasoning_effort"] = reasoning
-            logger.debug(f"Added reasoning_effort: {reasoning} (may not be supported by current models)")
+            logger.debug(
+                f"Added reasoning_effort: {reasoning} (may not be supported by current models)"
+            )
 
         # Add web search options if configured
         if self.web_search_options or kwargs.get("web_search_options"):
-            request_body["web_search_options"] = kwargs.get("web_search_options", self.web_search_options)
+            request_body["web_search_options"] = kwargs.get(
+                "web_search_options", self.web_search_options
+            )
 
         # Add stream options (configurable, defaults to include usage info)
-        request_body["stream_options"] = kwargs.get("stream_options", self.stream_options)
+        request_body["stream_options"] = kwargs.get(
+            "stream_options", self.stream_options
+        )
 
         # Add any additional parameters
         for key, value in self.additional_params.items():
@@ -333,8 +362,166 @@ class NovaModel(Model):
             "Authorization": f"Bearer {self.api_key}",
         }
 
+        # Check if we're streaming or not
+        is_streaming = request_body.get("stream", False)
+
         try:
             async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
+                # Handle non-streaming mode
+                if not is_streaming:
+                    response = await client.post(
+                        self.base_url,
+                        json=request_body,
+                        headers=headers,
+                    )
+
+                    # Handle errors
+                    if response.status_code in [401, 500]:
+                        error_body = response.text
+                        if (
+                            "Login Provider Error" in error_body
+                            or response.status_code == 401
+                        ):
+                            logger.error("Authentication failed - invalid Nova API key")
+                            raise NovaModelError(
+                                "Authentication failed - check your Nova API key (NOVA_API_KEY environment variable)"
+                            )
+                        logger.error(f"Nova API error (500): {error_body[:200]}")
+                        raise NovaModelError(f"Nova API error: {error_body[:200]}")
+
+                    if response.status_code == 404:
+                        logger.error(f"Model not found: {self.model}")
+                        raise NovaModelError(
+                            f"Model '{self.model}' not found or access denied. {response.text}"
+                        )
+
+                    if response.status_code == 429:
+                        logger.warning("Nova API rate limit exceeded")
+                        raise ModelThrottledException(
+                            f"Nova API rate limit exceeded: {response.text}"
+                        )
+
+                    if response.status_code == 400:
+                        error_body = response.text
+                        if any(
+                            keyword in error_body.lower()
+                            for keyword in [
+                                "context",
+                                "maximum",
+                                "token limit",
+                                "exceeds",
+                            ]
+                        ):
+                            logger.error(f"Context window exceeded: {error_body}")
+                            raise ContextWindowOverflowException(
+                                f"Context window exceeded: {error_body}"
+                            )
+                        logger.error(f"Bad request: {error_body}")
+                        raise NovaModelError(f"Bad request: {error_body}")
+
+                    if response.status_code != 200:
+                        logger.error(
+                            f"Nova API request failed with status {response.status_code}"
+                        )
+                        raise NovaModelError(
+                            f"Nova API request failed with status {response.status_code}: {response.text}"
+                        )
+
+                    # Parse the complete response
+                    data = response.json()
+
+                    # Emit message start
+                    logger.debug(
+                        "Non-streaming response received, emitting messageStart"
+                    )
+                    message_start: MessageStartEvent = {"role": "assistant"}
+                    yield {"messageStart": message_start}
+
+                    # Process the complete response
+                    if "choices" in data and len(data["choices"]) > 0:
+                        choice = data["choices"][0]
+
+                        # Handle text content
+                        if "message" in choice and "content" in choice["message"]:
+                            content = choice["message"]["content"]
+                            if content:
+                                # Emit content block start
+                                logger.debug("Emitting contentBlockStart")
+                                start_event: ContentBlockStartEvent = {"start": {}}
+                                yield {"contentBlockStart": start_event}
+
+                                # Emit content delta
+                                delta: ContentBlockDelta = {"text": content}
+                                delta_event: ContentBlockDeltaEvent = {"delta": delta}
+                                yield {"contentBlockDelta": delta_event}
+
+                                # Emit content block stop
+                                logger.debug("Emitting contentBlockStop")
+                                stop_block_event: ContentBlockStopEvent = {}
+                                yield {"contentBlockStop": stop_block_event}
+
+                        # Handle tool calls in non-streaming response
+                        if "message" in choice and "tool_calls" in choice["message"]:
+                            tool_calls = choice["message"]["tool_calls"]
+                            for tool_call in tool_calls:
+                                # Emit tool block start
+                                logger.debug(
+                                    f"Emitting contentBlockStart for tool: {tool_call['function']['name']}"
+                                )
+                                tool_start_event: ContentBlockStartEvent = {
+                                    "start": {
+                                        "toolUse": {
+                                            "name": tool_call["function"]["name"],
+                                            "toolUseId": tool_call["id"],
+                                        }
+                                    }
+                                }
+                                yield {"contentBlockStart": tool_start_event}
+
+                                # Emit tool input delta
+                                arguments = tool_call["function"]["arguments"]
+                                tool_delta: ContentBlockDelta = {
+                                    "toolUse": {"input": arguments}
+                                }
+                                tool_delta_event: ContentBlockDeltaEvent = {
+                                    "delta": tool_delta
+                                }
+                                yield {"contentBlockDelta": tool_delta_event}
+
+                                # Emit tool block stop
+                                logger.debug("Emitting contentBlockStop for tool")
+                                yield {"contentBlockStop": {}}
+
+                        # Emit message stop
+                        finish_reason = choice.get("finish_reason", "stop")
+                        stop_reason = "end_turn"
+                        if finish_reason == "length":
+                            stop_reason = "max_tokens"
+                        elif finish_reason == "tool_calls":
+                            stop_reason = "tool_use"
+
+                        logger.debug(f"Emitting messageStop with reason: {stop_reason}")
+                        stop_event: MessageStopEvent = {"stopReason": stop_reason}
+                        yield {"messageStop": stop_event}
+
+                    # Handle usage metadata
+                    if "usage" in data:
+                        logger.debug(f"Emitting metadata with usage: {data['usage']}")
+                        metadata_event: MetadataEvent = {
+                            "usage": {
+                                "inputTokens": data["usage"]["prompt_tokens"],
+                                "outputTokens": data["usage"]["completion_tokens"],
+                                "totalTokens": data["usage"]["total_tokens"],
+                            },
+                            "metrics": {
+                                "latencyMs": 0  # Nova API doesn't provide latency in response
+                            },
+                        }
+                        yield {"metadata": metadata_event}
+
+                    return  # Exit after processing non-streaming response
+
+                # Handle streaming mode
                 async with client.stream(
                     "POST",
                     self.base_url,
@@ -347,7 +534,10 @@ class NovaModel(Model):
                         error_body = error_text.decode("utf-8")
 
                         # Check if it's an auth error (HTML response with "Login Provider Error")
-                        if "Login Provider Error" in error_body or response.status_code == 401:
+                        if (
+                            "Login Provider Error" in error_body
+                            or response.status_code == 401
+                        ):
                             logger.error("Authentication failed - invalid Nova API key")
                             raise NovaModelError(
                                 "Authentication failed - check your Nova API key (NOVA_API_KEY environment variable)"
@@ -362,13 +552,17 @@ class NovaModel(Model):
                         error_text = await response.aread()
                         error_body = error_text.decode("utf-8")
                         logger.error(f"Model not found: {self.model}")
-                        raise NovaModelError(f"Model '{self.model}' not found or access denied. {error_body}")
+                        raise NovaModelError(
+                            f"Model '{self.model}' not found or access denied. {error_body}"
+                        )
 
                     # Handle rate limiting (429)
                     if response.status_code == 429:
                         error_text = await response.aread()
                         logger.warning("Nova API rate limit exceeded")
-                        raise ModelThrottledException(f"Nova API rate limit exceeded: {error_text.decode('utf-8')}")
+                        raise ModelThrottledException(
+                            f"Nova API rate limit exceeded: {error_text.decode('utf-8')}"
+                        )
 
                     # Handle bad requests (400)
                     if response.status_code == 400:
@@ -379,10 +573,17 @@ class NovaModel(Model):
                         # TODO: Need to verify exact error message format for context overflow
                         if any(
                             keyword in error_body.lower()
-                            for keyword in ["context", "maximum", "token limit", "exceeds"]
+                            for keyword in [
+                                "context",
+                                "maximum",
+                                "token limit",
+                                "exceeds",
+                            ]
                         ):
                             logger.error(f"Context window exceeded: {error_body}")
-                            raise ContextWindowOverflowException(f"Context window exceeded: {error_body}")
+                            raise ContextWindowOverflowException(
+                                f"Context window exceeded: {error_body}"
+                            )
 
                         logger.error(f"Bad request: {error_body}")
                         raise NovaModelError(f"Bad request: {error_body}")
@@ -390,7 +591,9 @@ class NovaModel(Model):
                     # Handle other errors
                     if response.status_code != 200:
                         error_text = await response.aread()
-                        logger.error(f"Nova API request failed with status {response.status_code}")
+                        logger.error(
+                            f"Nova API request failed with status {response.status_code}"
+                        )
                         raise NovaModelError(
                             f"Nova API request failed with status {response.status_code}: {error_text.decode('utf-8')}"
                         )
@@ -439,24 +642,38 @@ class NovaModel(Model):
                                     choice = data["choices"][0]
 
                                     # Handle content delta
-                                    if "delta" in choice and "content" in choice["delta"]:
+                                    if (
+                                        "delta" in choice
+                                        and "content" in choice["delta"]
+                                    ):
                                         content = choice["delta"]["content"]
                                         if content:
                                             # Emit content block start on first content
                                             if not content_block_started:
-                                                logger.debug("Emitting contentBlockStart")
-                                                start_event: ContentBlockStartEvent = {"start": {}}
+                                                logger.debug(
+                                                    "Emitting contentBlockStart"
+                                                )
+                                                start_event: ContentBlockStartEvent = {
+                                                    "start": {}
+                                                }
                                                 yield {"contentBlockStart": start_event}
                                                 content_block_started = True
 
                                             # Emit content delta
                                             delta: ContentBlockDelta = {"text": content}
-                                            delta_event: ContentBlockDeltaEvent = {"delta": delta}
-                                            stream_event: StreamEvent = {"contentBlockDelta": delta_event}
+                                            delta_event: ContentBlockDeltaEvent = {
+                                                "delta": delta
+                                            }
+                                            stream_event: StreamEvent = {
+                                                "contentBlockDelta": delta_event
+                                            }
                                             yield stream_event
 
                                     # Handle tool calls
-                                    if "delta" in choice and "tool_calls" in choice["delta"]:
+                                    if (
+                                        "delta" in choice
+                                        and "tool_calls" in choice["delta"]
+                                    ):
                                         tool_calls = choice["delta"]["tool_calls"]
 
                                         for tool_call in tool_calls:
@@ -472,10 +689,16 @@ class NovaModel(Model):
 
                                             # First chunk of a tool call (has id and name)
                                             if tool_call.get("id"):
-                                                accumulated_tool_calls[index]["id"] = tool_call["id"]
+                                                accumulated_tool_calls[index]["id"] = (
+                                                    tool_call["id"]
+                                                )
 
-                                            if tool_call.get("function", {}).get("name"):
-                                                accumulated_tool_calls[index]["name"] = tool_call["function"]["name"]
+                                            if tool_call.get("function", {}).get(
+                                                "name"
+                                            ):
+                                                accumulated_tool_calls[index][
+                                                    "name"
+                                                ] = tool_call["function"]["name"]
 
                                                 # Emit content block start for tool
                                                 logger.debug(
@@ -484,27 +707,49 @@ class NovaModel(Model):
                                                 tool_start_event: ContentBlockStartEvent = {
                                                     "start": {
                                                         "toolUse": {
-                                                            "name": tool_call["function"]["name"],
-                                                            "toolUseId": tool_call["id"],
+                                                            "name": tool_call[
+                                                                "function"
+                                                            ]["name"],
+                                                            "toolUseId": tool_call[
+                                                                "id"
+                                                            ],
                                                         }
                                                     }
                                                 }
-                                                yield {"contentBlockStart": tool_start_event}
+                                                yield {
+                                                    "contentBlockStart": tool_start_event
+                                                }
                                                 tool_call_started = True
 
                                             # Accumulate arguments
-                                            if "function" in tool_call and "arguments" in tool_call["function"]:
-                                                arguments = tool_call["function"]["arguments"]
+                                            if (
+                                                "function" in tool_call
+                                                and "arguments" in tool_call["function"]
+                                            ):
+                                                arguments = tool_call["function"][
+                                                    "arguments"
+                                                ]
                                                 if arguments:
-                                                    accumulated_tool_calls[index]["arguments"] += arguments
+                                                    accumulated_tool_calls[index][
+                                                        "arguments"
+                                                    ] += arguments
 
                                                     # Emit tool input delta
-                                                    tool_delta: ContentBlockDelta = {"toolUse": {"input": arguments}}
-                                                    tool_delta_event: ContentBlockDeltaEvent = {"delta": tool_delta}
-                                                    yield {"contentBlockDelta": tool_delta_event}
+                                                    tool_delta: ContentBlockDelta = {
+                                                        "toolUse": {"input": arguments}
+                                                    }
+                                                    tool_delta_event: ContentBlockDeltaEvent = {
+                                                        "delta": tool_delta
+                                                    }
+                                                    yield {
+                                                        "contentBlockDelta": tool_delta_event
+                                                    }
 
                                     # Handle finish
-                                    if "finish_reason" in choice and choice["finish_reason"]:
+                                    if (
+                                        "finish_reason" in choice
+                                        and choice["finish_reason"]
+                                    ):
                                         finish_reason = choice["finish_reason"]
 
                                         # Emit content block stop if we started a content block
@@ -522,19 +767,33 @@ class NovaModel(Model):
                                         elif finish_reason == "tool_calls":
                                             stop_reason = "tool_use"
 
-                                        logger.debug(f"Emitting messageStop with reason: {stop_reason}")
-                                        stop_event: MessageStopEvent = {"stopReason": stop_reason}
-                                        final_event: StreamEvent = {"messageStop": stop_event}
+                                        logger.debug(
+                                            f"Emitting messageStop with reason: {stop_reason}"
+                                        )
+                                        stop_event: MessageStopEvent = {
+                                            "stopReason": stop_reason
+                                        }
+                                        final_event: StreamEvent = {
+                                            "messageStop": stop_event
+                                        }
                                         yield final_event
 
                                 # Handle usage metadata
                                 if "usage" in data:
-                                    logger.debug(f"Emitting metadata with usage: {data['usage']}")
+                                    logger.debug(
+                                        f"Emitting metadata with usage: {data['usage']}"
+                                    )
                                     metadata_event: MetadataEvent = {
                                         "usage": {
-                                            "inputTokens": data["usage"]["prompt_tokens"],
-                                            "outputTokens": data["usage"]["completion_tokens"],
-                                            "totalTokens": data["usage"]["total_tokens"],
+                                            "inputTokens": data["usage"][
+                                                "prompt_tokens"
+                                            ],
+                                            "outputTokens": data["usage"][
+                                                "completion_tokens"
+                                            ],
+                                            "totalTokens": data["usage"][
+                                                "total_tokens"
+                                            ],
                                         },
                                         "metrics": {
                                             "latencyMs": 0  # Nova API doesn't provide latency in response
@@ -542,7 +801,11 @@ class NovaModel(Model):
                                     }
                                     yield {"metadata": metadata_event}
 
-                            except (json.JSONDecodeError, KeyError, UnicodeDecodeError) as e:
+                            except (
+                                json.JSONDecodeError,
+                                KeyError,
+                                UnicodeDecodeError,
+                            ) as e:
                                 # Log error but continue processing
                                 logger.debug(f"Error parsing SSE event: {e}")
                                 continue

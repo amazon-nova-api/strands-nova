@@ -22,7 +22,7 @@ def main():
         return
 
     # Initialize model
-    model = NovaModel(model="nova-premier-v1", temperature=0.3, max_tokens=512)
+    model = NovaModel(model="nova-lite-v1", temperature=0.3, max_tokens=512)
 
     # Create agent
     agent = Agent(model=model, callback_handler=None)

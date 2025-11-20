@@ -10,7 +10,7 @@ from strands_nova import NovaModel
 @pytest.fixture
 def nova_model():
     """Create a NovaModel instance for testing."""
-    return NovaModel(api_key="test-api-key", model="nova-premier-v1")
+    return NovaModel(api_key="test-api-key", model="nova-premier-v1", stream=True)
 
 
 class TestBasicStreaming:
@@ -196,7 +196,9 @@ class TestStreamingWithSystemPrompts:
             mock_instance.stream.return_value = mock_stream
             mock_client.return_value.__aenter__.return_value = mock_instance
 
-            async for _ in nova_model.stream("User prompt", system_prompt="You are helpful"):
+            async for _ in nova_model.stream(
+                "User prompt", system_prompt="You are helpful"
+            ):
                 pass
 
             call_args = mock_instance.stream.call_args
@@ -224,9 +226,14 @@ class TestStreamingWithSystemPrompts:
             mock_instance.stream.return_value = mock_stream
             mock_client.return_value.__aenter__.return_value = mock_instance
 
-            system_content = [{"text": "First instruction"}, {"text": "Second instruction"}]
+            system_content = [
+                {"text": "First instruction"},
+                {"text": "Second instruction"},
+            ]
 
-            async for _ in nova_model.stream("User prompt", system_prompt_content=system_content):
+            async for _ in nova_model.stream(
+                "User prompt", system_prompt_content=system_content
+            ):
                 pass
 
             call_args = mock_instance.stream.call_args
@@ -254,7 +261,9 @@ class TestStreamingWithSystemPrompts:
             mock_client.return_value.__aenter__.return_value = mock_instance
 
             async for _ in nova_model.stream(
-                "User prompt", system_prompt="Text prompt", system_prompt_content=[{"text": "Content prompt"}]
+                "User prompt",
+                system_prompt="Text prompt",
+                system_prompt_content=[{"text": "Content prompt"}],
             ):
                 pass
 
@@ -280,7 +289,11 @@ class TestStreamingWithTools:
         mock_response.aiter_bytes = mock_aiter
 
         tool_specs = [
-            {"name": "get_weather", "description": "Get weather", "inputSchema": {"type": "object", "properties": {}}}
+            {
+                "name": "get_weather",
+                "description": "Get weather",
+                "inputSchema": {"type": "object", "properties": {}},
+            }
         ]
 
         with patch("httpx.AsyncClient") as mock_client:
@@ -319,7 +332,9 @@ class TestStreamingWithTools:
             mock_instance.stream.return_value = mock_stream
             mock_client.return_value.__aenter__.return_value = mock_instance
 
-            async for _ in nova_model.stream("Test", tool_specs=tool_specs, tool_choice={"tool": {"name": "my_tool"}}):
+            async for _ in nova_model.stream(
+                "Test", tool_specs=tool_specs, tool_choice={"tool": {"name": "my_tool"}}
+            ):
                 pass
 
             call_args = mock_instance.stream.call_args
@@ -356,7 +371,8 @@ class TestStreamingWithTools:
             tool_start_events = [
                 e
                 for e in events
-                if "contentBlockStart" in e and "toolUse" in e.get("contentBlockStart", {}).get("start", {})
+                if "contentBlockStart" in e
+                and "toolUse" in e.get("contentBlockStart", {}).get("start", {})
             ]
             assert len(tool_start_events) > 0
 
@@ -557,9 +573,59 @@ class TestStreamingRequestConfiguration:
             assert json_data["stream_options"]["include_usage"] is True
 
     @pytest.mark.asyncio
+    async def test_stream_parameter_is_set_correctly(self):
+        """Test that stream parameter matches model configuration."""
+        # Test with streaming enabled
+        model_streaming = NovaModel(api_key="test-key", stream=True)
+        mock_response = AsyncMock()
+        mock_response.status_code = 200
+
+        async def mock_aiter():
+            yield b'data: {"choices":[{"delta":{"content":"Test"}}]}\n\n'
+            yield b'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n'
+
+        mock_response.aiter_bytes = mock_aiter
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_instance = MagicMock()
+            mock_stream = AsyncMock()
+            mock_stream.__aenter__.return_value = mock_response
+            mock_instance.stream.return_value = mock_stream
+            mock_client.return_value.__aenter__.return_value = mock_instance
+
+            async for _ in model_streaming.stream("Test"):
+                pass
+
+            call_args = mock_instance.stream.call_args
+            json_data = call_args.kwargs["json"]
+            assert json_data["stream"] is True
+
+    @pytest.mark.asyncio
+    async def test_non_stream_parameter_is_set_correctly(self):
+        """Test that stream parameter is False for non-streaming mode."""
+        model_non_streaming = NovaModel(api_key="test-key", stream=False)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "choices": [{"message": {"content": "Test"}, "finish_reason": "stop"}]
+        }
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.post = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value = mock_instance
+
+            async for _ in model_non_streaming.stream("Test"):
+                pass
+
+            call_args = mock_instance.post.call_args
+            json_data = call_args.kwargs["json"]
+            assert json_data["stream"] is False
+
+    @pytest.mark.asyncio
     async def test_stream_with_reasoning_effort(self):
         """Test streaming with reasoning_effort parameter."""
-        model = NovaModel(api_key="test-key", reasoning_effort="high")
+        model = NovaModel(api_key="test-key", reasoning_effort="high", stream=True)
 
         mock_response = AsyncMock()
         mock_response.status_code = 200
@@ -589,7 +655,7 @@ class TestStreamingRequestConfiguration:
     async def test_stream_with_web_search_options(self):
         """Test streaming with web_search_options parameter."""
         web_opts = {"search_context_size": "medium"}
-        model = NovaModel(api_key="test-key", web_search_options=web_opts)
+        model = NovaModel(api_key="test-key", web_search_options=web_opts, stream=True)
 
         mock_response = AsyncMock()
         mock_response.status_code = 200
@@ -614,6 +680,220 @@ class TestStreamingRequestConfiguration:
             json_data = call_args.kwargs["json"]
             assert "web_search_options" in json_data
             assert json_data["web_search_options"] == web_opts
+
+
+class TestNonStreamingMode:
+    """Test non-streaming mode within stream() method."""
+
+    @pytest.mark.asyncio
+    async def test_non_streaming_basic_response(self):
+        """Test non-streaming mode with basic text response."""
+        model = NovaModel(api_key="test-key", stream=False)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "choices": [
+                {"message": {"content": "Hello world"}, "finish_reason": "stop"}
+            ],
+            "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
+        }
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.post = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value = mock_instance
+
+            events = []
+            async for event in model.stream("Test prompt"):
+                events.append(event)
+
+            # Verify event sequence
+            assert any("messageStart" in e for e in events)
+            assert any("contentBlockStart" in e for e in events)
+            assert any("contentBlockDelta" in e for e in events)
+            assert any("contentBlockStop" in e for e in events)
+            assert any("messageStop" in e for e in events)
+            assert any("metadata" in e for e in events)
+
+            # Verify content
+            delta_events = [e for e in events if "contentBlockDelta" in e]
+            assert len(delta_events) == 1
+            assert (
+                delta_events[0]["contentBlockDelta"]["delta"]["text"] == "Hello world"
+            )
+
+    @pytest.mark.asyncio
+    async def test_non_streaming_with_tool_calls(self):
+        """Test non-streaming mode with tool calls."""
+        model = NovaModel(api_key="test-key", stream=False)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "choices": [
+                {
+                    "message": {
+                        "content": None,
+                        "tool_calls": [
+                            {
+                                "id": "call_123",
+                                "type": "function",
+                                "function": {
+                                    "name": "get_weather",
+                                    "arguments": '{"location": "NYC"}',
+                                },
+                            }
+                        ],
+                    },
+                    "finish_reason": "tool_calls",
+                }
+            ],
+            "usage": {"prompt_tokens": 20, "completion_tokens": 10, "total_tokens": 30},
+        }
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.post = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value = mock_instance
+
+            events = []
+            async for event in model.stream("What's the weather?"):
+                events.append(event)
+
+            # Verify tool use events
+            tool_start_events = [
+                e
+                for e in events
+                if "contentBlockStart" in e
+                and "toolUse" in e.get("contentBlockStart", {}).get("start", {})
+            ]
+            assert len(tool_start_events) == 1
+            assert (
+                tool_start_events[0]["contentBlockStart"]["start"]["toolUse"]["name"]
+                == "get_weather"
+            )
+            assert (
+                tool_start_events[0]["contentBlockStart"]["start"]["toolUse"][
+                    "toolUseId"
+                ]
+                == "call_123"
+            )
+
+            # Verify stop reason
+            stop_events = [e for e in events if "messageStop" in e]
+            assert len(stop_events) == 1
+            assert stop_events[0]["messageStop"]["stopReason"] == "tool_use"
+
+    @pytest.mark.asyncio
+    async def test_non_streaming_with_both_text_and_tools(self):
+        """Test non-streaming mode with both text content and tool calls."""
+        model = NovaModel(api_key="test-key", stream=False)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "choices": [
+                {
+                    "message": {
+                        "content": "Let me check that for you.",
+                        "tool_calls": [
+                            {
+                                "id": "call_456",
+                                "type": "function",
+                                "function": {
+                                    "name": "search",
+                                    "arguments": '{"query": "test"}',
+                                },
+                            }
+                        ],
+                    },
+                    "finish_reason": "tool_calls",
+                }
+            ],
+            "usage": {"prompt_tokens": 15, "completion_tokens": 8, "total_tokens": 23},
+        }
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.post = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value = mock_instance
+
+            events = []
+            async for event in model.stream("Search for something"):
+                events.append(event)
+
+            # Verify both text and tool events are present
+            text_delta_events = [
+                e
+                for e in events
+                if "contentBlockDelta" in e
+                and "text" in e.get("contentBlockDelta", {}).get("delta", {})
+            ]
+            assert len(text_delta_events) == 1
+            assert (
+                text_delta_events[0]["contentBlockDelta"]["delta"]["text"]
+                == "Let me check that for you."
+            )
+
+            tool_start_events = [
+                e
+                for e in events
+                if "contentBlockStart" in e
+                and "toolUse" in e.get("contentBlockStart", {}).get("start", {})
+            ]
+            assert len(tool_start_events) == 1
+
+    @pytest.mark.asyncio
+    async def test_non_streaming_empty_content(self):
+        """Test non-streaming mode with empty content."""
+        model = NovaModel(api_key="test-key", stream=False)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "choices": [{"message": {"content": ""}, "finish_reason": "stop"}],
+            "usage": {"prompt_tokens": 5, "completion_tokens": 0, "total_tokens": 5},
+        }
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.post = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value = mock_instance
+
+            events = []
+            async for event in model.stream("Test prompt"):
+                events.append(event)
+
+            # Should have messageStart and messageStop but no content blocks
+            assert any("messageStart" in e for e in events)
+            assert any("messageStop" in e for e in events)
+            assert not any("contentBlockDelta" in e for e in events)
+
+    @pytest.mark.asyncio
+    async def test_non_streaming_finish_reason_length(self):
+        """Test non-streaming mode maps finish_reason 'length' to 'max_tokens'."""
+        model = NovaModel(api_key="test-key", stream=False)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "choices": [
+                {"message": {"content": "Truncated"}, "finish_reason": "length"}
+            ]
+        }
+
+        with patch("httpx.AsyncClient") as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.post = AsyncMock(return_value=mock_response)
+            mock_client.return_value.__aenter__.return_value = mock_instance
+
+            events = []
+            async for event in model.stream("Test"):
+                events.append(event)
+
+            stop_events = [e for e in events if "messageStop" in e]
+            assert stop_events[0]["messageStop"]["stopReason"] == "max_tokens"
 
 
 class TestStreamingEdgeCases:

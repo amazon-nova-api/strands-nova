@@ -18,7 +18,9 @@ class TestMessageConversion:
     def test_convert_string_with_system_prompt(self):
         """Test conversion with system prompt."""
         model = NovaModel(api_key="test-key")
-        result = model._convert_messages_to_nova_format("User message", system_prompt="You are a helpful assistant")
+        result = model._convert_messages_to_nova_format(
+            "User message", system_prompt="You are a helpful assistant"
+        )
 
         assert len(result) == 2
         assert result[0]["role"] == "system"
@@ -48,7 +50,14 @@ class TestMessageConversion:
         """Test conversion of messages with multiple content blocks."""
         model = NovaModel(api_key="test-key")
         messages = [
-            {"role": "user", "content": [{"text": "First part"}, {"text": "Second part"}, {"text": "Third part"}]}
+            {
+                "role": "user",
+                "content": [
+                    {"text": "First part"},
+                    {"text": "Second part"},
+                    {"text": "Third part"},
+                ],
+            }
         ]
         result = model._convert_messages_to_nova_format(messages)
 
@@ -160,7 +169,10 @@ class TestToolSpecConversion:
             {
                 "name": "get_weather",
                 "description": "Get current weather",
-                "inputSchema": {"type": "object", "properties": {"location": {"type": "string"}}},
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {"location": {"type": "string"}},
+                },
             }
         ]
         result = model._convert_tool_specs_to_nova_format(tool_specs)
@@ -176,9 +188,21 @@ class TestToolSpecConversion:
         """Test conversion of multiple tool specs."""
         model = NovaModel(api_key="test-key")
         tool_specs = [
-            {"name": "tool1", "description": "First tool", "inputSchema": {"type": "object", "properties": {}}},
-            {"name": "tool2", "description": "Second tool", "inputSchema": {"type": "object", "properties": {}}},
-            {"name": "tool3", "description": "Third tool", "inputSchema": {"type": "object", "properties": {}}},
+            {
+                "name": "tool1",
+                "description": "First tool",
+                "inputSchema": {"type": "object", "properties": {}},
+            },
+            {
+                "name": "tool2",
+                "description": "Second tool",
+                "inputSchema": {"type": "object", "properties": {}},
+            },
+            {
+                "name": "tool3",
+                "description": "Third tool",
+                "inputSchema": {"type": "object", "properties": {}},
+            },
         ]
         result = model._convert_tool_specs_to_nova_format(tool_specs)
 
@@ -196,14 +220,22 @@ class TestToolSpecConversion:
                 "description": "Perform calculations",
                 "inputSchema": {
                     "type": "object",
-                    "properties": {"operation": {"type": "string"}, "x": {"type": "number"}, "y": {"type": "number"}},
+                    "properties": {
+                        "operation": {"type": "string"},
+                        "x": {"type": "number"},
+                        "y": {"type": "number"},
+                    },
                     "required": ["operation", "x", "y"],
                 },
             }
         ]
         result = model._convert_tool_specs_to_nova_format(tool_specs)
 
-        assert result[0]["function"]["parameters"]["required"] == ["operation", "x", "y"]
+        assert result[0]["function"]["parameters"]["required"] == [
+            "operation",
+            "x",
+            "y",
+        ]
 
     def test_convert_tool_with_complex_schema(self):
         """Test conversion of tool with complex input schema."""
@@ -217,7 +249,10 @@ class TestToolSpecConversion:
                     "properties": {
                         "nested": {
                             "type": "object",
-                            "properties": {"field1": {"type": "string"}, "field2": {"type": "integer"}},
+                            "properties": {
+                                "field1": {"type": "string"},
+                                "field2": {"type": "integer"},
+                            },
                         },
                         "array_field": {"type": "array", "items": {"type": "string"}},
                     },
@@ -329,7 +364,12 @@ class TestConversionEdgeCases:
     def test_message_conversion_with_none_in_content_blocks(self):
         """Test handling of None values in content blocks."""
         model = NovaModel(api_key="test-key")
-        messages = [{"role": "user", "content": [{"text": "Valid"}, None, {"text": "Also valid"}]}]
+        messages = [
+            {
+                "role": "user",
+                "content": [{"text": "Valid"}, None, {"text": "Also valid"}],
+            }
+        ]
         # Should handle gracefully without crashing
         result = model._convert_messages_to_nova_format(messages)
         assert len(result) > 0
@@ -337,7 +377,9 @@ class TestConversionEdgeCases:
     def test_tool_spec_conversion_with_minimal_schema(self):
         """Test tool conversion with minimal schema."""
         model = NovaModel(api_key="test-key")
-        tool_specs = [{"name": "simple_tool", "description": "Simple", "inputSchema": {}}]
+        tool_specs = [
+            {"name": "simple_tool", "description": "Simple", "inputSchema": {}}
+        ]
         result = model._convert_tool_specs_to_nova_format(tool_specs)
 
         assert len(result) == 1
@@ -387,7 +429,13 @@ class TestConversionEdgeCases:
         """Test tool conversion with very long description."""
         model = NovaModel(api_key="test-key")
         long_description = "This is a very detailed description. " * 100
-        tool_specs = [{"name": "detailed_tool", "description": long_description, "inputSchema": {}}]
+        tool_specs = [
+            {
+                "name": "detailed_tool",
+                "description": long_description,
+                "inputSchema": {},
+            }
+        ]
         result = model._convert_tool_specs_to_nova_format(tool_specs)
 
         assert result[0]["function"]["description"] == long_description

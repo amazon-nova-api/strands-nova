@@ -2,9 +2,9 @@
 
 These tests make actual API calls to the Nova API through Strands Agent.
 Requires NOVA_API_KEY environment variable to be set.
-"""
 
-import os
+Tests are parametrized to run on all models that support the required capability.
+"""
 
 import pytest
 from dotenv import load_dotenv
@@ -14,11 +14,6 @@ from strands_nova import NovaModel
 
 # Load environment variables
 load_dotenv()
-
-
-def get_model_id() -> str:
-    """Get the model ID from environment or use default."""
-    return os.getenv("NOVA_MODEL_ID", "nova-premier-v1")
 
 
 # Define test tools
@@ -51,7 +46,8 @@ def get_weather(location: str, units: str = "celsius") -> str:
 
 
 @pytest.mark.integration
-def test_multi_turn_triple_tool_call():
+@pytest.mark.requires_capability("text")
+def test_multi_turn_triple_tool_call(model_id):
     """Test multi-turn conversation with triple tool call.
 
     Test case: multi_turn_triple_tool_call
@@ -59,7 +55,7 @@ def test_multi_turn_triple_tool_call():
     Expected: Agent handles conversation history and responds appropriately
     """
     # Initialize model and agent with tool
-    model = NovaModel(model=get_model_id())
+    model = NovaModel(model=model_id)
     agent = Agent(model=model, tools=[get_weather])
 
     # First turn: Ask about weather in multiple cities
@@ -79,7 +75,8 @@ def test_multi_turn_triple_tool_call():
 
 
 @pytest.mark.integration
-def test_multi_turn_conversation():
+@pytest.mark.requires_capability("text")
+def test_multi_turn_conversation(model_id):
     """Test basic multi-turn conversation without tools.
 
     Test case: General multi-turn conversation
@@ -87,7 +84,7 @@ def test_multi_turn_conversation():
     Expected: Agent maintains context across turns
     """
     # Initialize model and agent
-    model = NovaModel(model=get_model_id())
+    model = NovaModel(model=model_id)
     agent = Agent(model=model)
 
     # First turn
@@ -113,7 +110,8 @@ def test_multi_turn_conversation():
 
 
 @pytest.mark.integration
-def test_multi_turn_with_context_shift():
+@pytest.mark.requires_capability("text")
+def test_multi_turn_with_context_shift(model_id):
     """Test multi-turn conversation with context shifts.
 
     Test case: Multi-turn with topic changes
@@ -121,7 +119,7 @@ def test_multi_turn_with_context_shift():
     Expected: Agent handles context shifts appropriately
     """
     # Initialize model and agent with tool
-    model = NovaModel(model=get_model_id())
+    model = NovaModel(model=model_id)
     agent = Agent(model=model, tools=[get_weather])
 
     # First turn: Weather question

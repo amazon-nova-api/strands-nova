@@ -66,7 +66,9 @@ class TestUpdateConfig:
     def test_update_multiple_params_at_once(self):
         """Test updating multiple parameters simultaneously."""
         model = NovaModel(api_key="test-key")
-        model.update_config(temperature=0.3, max_tokens=1024, top_p=0.85, model="nova-lite-v1")
+        model.update_config(
+            temperature=0.3, max_tokens=1024, top_p=0.85, model="nova-lite-v1"
+        )
         assert model.temperature == 0.3
         assert model.max_tokens == 1024
         assert model.top_p == 0.85
@@ -88,7 +90,9 @@ class TestUpdateConfig:
     def test_update_with_mix_of_standard_and_custom_params(self):
         """Test updating mix of standard and custom parameters."""
         model = NovaModel(api_key="test-key")
-        model.update_config(temperature=0.6, custom_param1="value1", max_tokens=3000, custom_param2=42)
+        model.update_config(
+            temperature=0.6, custom_param1="value1", max_tokens=3000, custom_param2=42
+        )
         assert model.temperature == 0.6
         assert model.max_tokens == 3000
         assert model.additional_params["custom_param1"] == "value1"
@@ -319,7 +323,10 @@ class TestConfigEdgeCases:
         """Test get_config with deeply nested configuration objects."""
         complex_web_opts = {
             "search_context_size": "high",
-            "filters": {"domains": ["example.com"], "date_range": {"start": "2024-01-01", "end": "2024-12-31"}},
+            "filters": {
+                "domains": ["example.com"],
+                "date_range": {"start": "2024-01-01", "end": "2024-12-31"},
+            },
         }
         model = NovaModel(api_key="test-key", web_search_options=complex_web_opts)
         config = model.get_config()
@@ -329,7 +336,8 @@ class TestConfigEdgeCases:
         """Test updating with special characters in string values."""
         model = NovaModel(api_key="test-key")
         model.update_config(
-            model="model-with-special!@#$%", base_url="https://api.example.com/v1/chat?key=value&param=test"
+            model="model-with-special!@#$%",
+            base_url="https://api.example.com/v1/chat?key=value&param=test",
         )
         assert model.model == "model-with-special!@#$%"
         assert "key=value" in model.base_url
@@ -350,7 +358,9 @@ class TestConfigEdgeCases:
     def test_update_config_with_numeric_types(self):
         """Test updating with various numeric types."""
         model = NovaModel(api_key="test-key")
-        model.update_config(int_param=42, float_param=3.14, negative_int=-10, negative_float=-2.5)
+        model.update_config(
+            int_param=42, float_param=3.14, negative_int=-10, negative_float=-2.5
+        )
         assert model.additional_params["int_param"] == 42
         assert model.additional_params["float_param"] == 3.14
         assert model.additional_params["negative_int"] == -10

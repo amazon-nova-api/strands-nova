@@ -14,17 +14,22 @@ async def basic_streaming():
     """Demonstrate basic streaming with Strands Agent."""
 
     # Initialize model
-    model = NovaModel(model="nova-premier-v1", temperature=0.3, max_tokens=512)
+    model = NovaModel(
+        model="nova-lite-v1", temperature=0.3, max_tokens=512, stream=True
+    )
 
     # Create agent
     agent = Agent(model=model, callback_handler=None)
 
     print("Question: What is the Turing Test in Computer Science?\n")
     print("Response: ", end="")
-    async for event in agent.stream_async("What is the Turing Test in Computer Science?"):
+    async for event in agent.stream_async(
+        "What is the Turing Test in Computer Science?"
+    ):
         if "data" in event:
             print(event["data"], end="", flush=True)
     print("\n")
+
 
 async def main():
     """Run streaming example"""

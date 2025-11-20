@@ -2,9 +2,9 @@
 
 These tests make actual API calls to the Nova API through Strands Agent.
 Requires NOVA_API_KEY environment variable to be set.
-"""
 
-import os
+Tests are parametrized to run on all models that support the required capability.
+"""
 
 import pytest
 from dotenv import load_dotenv
@@ -14,11 +14,6 @@ from strands_nova import NovaModel
 
 # Load environment variables
 load_dotenv()
-
-
-def get_model_id() -> str:
-    """Get the model ID from environment or use default."""
-    return os.getenv("NOVA_MODEL_ID", "nova-premier-v1")
 
 
 # Define test tools
@@ -69,7 +64,8 @@ def search_database(query: str) -> list:
 
 
 @pytest.mark.integration
-def test_tool_single():
+@pytest.mark.requires_capability("text")
+def test_tool_single(model_id):
     """Test single tool call through Strands Agent.
 
     Test case: tool_single
@@ -77,7 +73,7 @@ def test_tool_single():
     Expected: Agent calls get_weather tool with city="Paris"
     """
     # Initialize model and agent with tool
-    model = NovaModel(model=get_model_id())
+    model = NovaModel(model=model_id)
     agent = Agent(model=model, tools=[get_weather])
 
     # Test input
@@ -92,7 +88,8 @@ def test_tool_single():
 
 
 @pytest.mark.integration
-def test_tool_multi():
+@pytest.mark.requires_capability("text")
+def test_tool_multi(model_id):
     """Test multiple tool calls through Strands Agent.
 
     Test case: tool_multi
@@ -100,7 +97,7 @@ def test_tool_multi():
     Expected: Agent calls multiple tools
     """
     # Initialize model and agent with multiple tools
-    model = NovaModel(model=get_model_id())
+    model = NovaModel(model=model_id)
     agent = Agent(model=model, tools=[get_weather, calculate])
 
     # Test input
@@ -115,7 +112,8 @@ def test_tool_multi():
 
 
 @pytest.mark.integration
-def test_tool_result():
+@pytest.mark.requires_capability("text")
+def test_tool_result(model_id):
     """Test tool result handling through Strands Agent.
 
     Test case: tool_result
@@ -123,7 +121,7 @@ def test_tool_result():
     Expected: Agent processes tool result and responds
     """
     # Initialize model and agent with tool
-    model = NovaModel(model=get_model_id())
+    model = NovaModel(model=model_id)
     agent = Agent(model=model, tools=[get_weather])
 
     # First call to trigger tool use
@@ -141,7 +139,8 @@ def test_tool_result():
 
 
 @pytest.mark.integration
-def test_chained_tool_call():
+@pytest.mark.requires_capability("text")
+def test_chained_tool_call(model_id):
     """Test chained tool calls through Strands Agent.
 
     Test case: chained_tool_call
@@ -149,7 +148,7 @@ def test_chained_tool_call():
     Expected: Agent calls tools in sequence based on previous results
     """
     # Initialize model and agent with tools
-    model = NovaModel(model=get_model_id())
+    model = NovaModel(model=model_id)
     agent = Agent(model=model, tools=[search_database, calculate])
 
     # Test input that requires chained operations
@@ -164,7 +163,8 @@ def test_chained_tool_call():
 
 
 @pytest.mark.integration
-def test_triple_tool_call():
+@pytest.mark.requires_capability("text")
+def test_triple_tool_call(model_id):
     """Test triple tool calls through Strands Agent.
 
     Test case: triple_tool_call
@@ -172,7 +172,7 @@ def test_triple_tool_call():
     Expected: Agent calls three tools to complete the request
     """
     # Initialize model and agent with tools
-    model = NovaModel(model=get_model_id())
+    model = NovaModel(model=model_id)
     agent = Agent(model=model, tools=[get_weather, calculate, search_database])
 
     # Test input requiring multiple tools
@@ -187,7 +187,8 @@ def test_triple_tool_call():
 
 
 @pytest.mark.integration
-def test_multi_tool_result():
+@pytest.mark.requires_capability("text")
+def test_multi_tool_result(model_id):
     """Test multiple tool results handling through Strands Agent.
 
     Test case: multi_tool_result
@@ -195,7 +196,7 @@ def test_multi_tool_result():
     Expected: Agent processes multiple tool results correctly
     """
     # Initialize model and agent with tools
-    model = NovaModel(model=get_model_id())
+    model = NovaModel(model=model_id)
     agent = Agent(model=model, tools=[get_weather, calculate])
 
     # Make request requiring multiple tools
