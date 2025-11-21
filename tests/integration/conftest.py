@@ -5,14 +5,73 @@ parametrizes tests based on model capabilities.
 """
 
 import os
-from typing import Any, Dict, List
-
+from typing import Any, Dict, List, Literal
+import pydantic
 import httpx
 import pytest
+import strands
 from dotenv import load_dotenv
+from strands import Agent
+
+from strands_nova import NovaModel
 
 # Load environment variables
 load_dotenv()
+
+@pytest.fixture
+def yellow_img(pytestconfig):
+    path = pytestconfig.rootdir / "tests/integration/yellow.png"
+    with open(path, "rb") as fp:
+        return fp.read()
+
+
+@pytest.fixture
+def model():
+    return NovaModel(
+        model_id="nova-pro-v1",
+        api_key=os.getenv("NOVA_API_KEY"),
+    )
+
+@pytest.fixture
+def weather():
+    class Weather(pydantic.BaseModel):
+        """Extracts the time and weather from the user's message with the exact strings."""
+
+        time: str
+        weather: str
+
+    return Weather(time="12:00", weather="sunny")
+
+@pytest.fixture
+def yellow_color():
+    class Color(pydantic.BaseModel):
+        """Describes a color."""
+
+        name: Literal["red", "blue", "yellow"]
+
+        @pydantic.field_validator("name", mode="after")
+        @classmethod
+        def lower(_, value):
+            return value.lower()
+
+    return Color(name="yellow")
+
+@pytest.fixture
+def tools():
+    @strands.tool
+    def tool_time() -> str:
+        return "12:00"
+
+    @strands.tool
+    def tool_weather() -> str:
+        return "sunny"
+
+    return [tool_time, tool_weather]
+
+
+@pytest.fixture
+def agent(model, tools):
+    return Agent(model=model, tools=tools)
 
 
 def get_available_models() -> List[Dict[str, Any]]:

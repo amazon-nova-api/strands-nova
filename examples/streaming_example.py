@@ -2,29 +2,80 @@
 """Streaming example for strands-nova using Strands Agent."""
 
 import asyncio
-import os
-
 from dotenv import load_dotenv
 from strands import Agent
 
 from strands_nova import NovaModel
 
+def yellow_img():
+    """Load yellow image for testing."""
+    with open("tests/integration/yellow.png", "rb") as fp:
+        return fp.read()
 
 async def basic_streaming():
     """Demonstrate basic streaming with Strands Agent."""
 
     # Initialize model
     model = NovaModel(
-        model="nova-lite-v1", temperature=0.3, max_tokens=512, stream=True
+        model_id="nova-pro-v1", 
+        params={
+            "temperature": 0.3,
+            "max_tokens": 512,
+        },
+        stream=True,
+        stream_options={'include_usage': True}
     )
 
     # Create agent
     agent = Agent(model=model, callback_handler=None)
 
-    print("Question: What is the Turing Test in Computer Science?\n")
-    print("Response: ", end="")
+    print("Question: What are the seven colors of the rainbow?\n")
+    print("Response: ", end="", flush=True)
     async for event in agent.stream_async(
-        "What is the Turing Test in Computer Science?"
+        "What are the seven colors of the rainbow?"
+    ):
+        if "data" in event:
+            print(event["data"], end="", flush=True)
+        # Print usage metadata when available
+        elif "result" in event:
+            result = event["result"]
+            if hasattr(result, "metrics") and result.metrics:
+                usage = result.metrics.accumulated_usage
+                print(f"\n\nUsage: {usage}")
+    print("\n")
+
+async def image_streaming():
+    """Demonstrate basic streaming with Strands Agent."""
+
+    # Initialize model
+    model = NovaModel(
+        model_id="nova-pro-v1", 
+        params={
+            "temperature": 0.3,
+            "max_tokens": 512,
+        },
+        stream=True,
+        stream_options={'include_usage': True}
+    )
+
+    # Create agent
+    agent = Agent(model=model, callback_handler=None)
+
+    content = [
+        {"text": "Is this image red, blue, or yellow?"},
+        {
+            "image": {
+                "format": "png",
+                "source": {
+                    "bytes": yellow_img(),
+                },
+            },
+        },
+    ]
+    print("Question: Is this image red, blue, or yellow??\n")
+    print("Response: ", end="", flush=True)
+    async for event in agent.stream_async(
+        content
     ):
         if "data" in event:
             print(event["data"], end="", flush=True)
@@ -36,15 +87,12 @@ async def main():
     # Load environment variables
     load_dotenv()
 
-    # Check for API key
-    if not os.getenv("NOVA_API_KEY"):
-        print("Error: NOVA_API_KEY not found in environment variables.")
-        print("Please set: export NOVA_API_KEY='your-api-key'")
-        print("Get your API key from: https://nova.amazon.com/apis")
-        return
-
     # Run examples
-    await basic_streaming()
+    try:
+        await basic_streaming()
+        await image_streaming()
+    except ValueError as e:
+        print(f"Error: {e}")
 
 
 if __name__ == "__main__":

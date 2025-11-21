@@ -5,21 +5,19 @@ API for Amazon's Nova family of models) and the Strands Agents SDK, enabling
 access to Nova Pro, Nova Premier, reasoning models, and image generation capabilities.
 """
 
-from typing import Optional
-
-from .nova import NovaModel, NovaModelError
+from .nova import NovaModel
 
 __version__ = "0.1.0"
-__all__ = ["NovaModel", "NovaModelError"]
+__all__ = ["NovaModel"]
 
 
 # Convenience exports for common use cases
-def create_nova_model(api_key: Optional[str] = None, **kwargs) -> NovaModel:
+def create_nova_model(api_key: str, **kwargs) -> NovaModel:
     """Create a Nova model instance with default settings.
 
     Args:
-        api_key: Nova API key (can also be set via NOVA_API_KEY env var)
-        **kwargs: Additional model parameters
+        api_key: Nova API key (required)
+        **kwargs: Additional model parameters (model_id, params, base_url, timeout)
 
     Returns:
         Configured NovaModel instance
