@@ -704,11 +704,11 @@ class NovaModel(Model):
                     logger.debug("finished streaming response from Nova model")
 
             except httpx.TimeoutException as e:
-                logger.error("Nova API request timed out")
-                raise Exception(f"Nova API timeout: {str(e)}") from e
+                logger.error(f"Nova API request timed out: {e}")
+                raise
             except httpx.RequestError as e:
                 logger.error(f"Nova API request error: {e}")
-                raise Exception(f"Nova API request error: {str(e)}") from e
+                raise
 
     def _stream_switch_content(self, data_type: str, prev_data_type: str | None) -> tuple[list[StreamEvent], str]:
         """Handle switching to a new content stream.
@@ -775,11 +775,11 @@ class NovaModel(Model):
                     self._handle_api_error(response)
 
             except httpx.TimeoutException as e:
-                logger.error("Nova API request timed out")
-                raise Exception(f"Nova API timeout: {str(e)}") from e
+                logger.error(f"Nova API request timed out: {e}")
+                raise
             except httpx.RequestError as e:
                 logger.error(f"Nova API request error: {e}")
-                raise Exception(f"Nova API request error: {str(e)}") from e
+                raise
 
             logger.debug("got structured output response from Nova model")
             
