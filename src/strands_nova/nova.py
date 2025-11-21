@@ -182,9 +182,15 @@ class NovaModel(Model):
             }
 
         if "audio" in content:
-            audio_data = base64.b64encode(content["audio"]["source"]["bytes"]).decode(
-                "utf-8"
-            )
+            # Handle both raw bytes and already-encoded base64 strings
+            audio_source = content["audio"]["source"]["bytes"]
+            if isinstance(audio_source, str):
+                # Already base64 encoded
+                audio_data = audio_source
+            else:
+                # Raw bytes, need to encode
+                audio_data = base64.b64encode(audio_source).decode("utf-8")
+            
             audio_format = content["audio"]["format"]
 
             return {

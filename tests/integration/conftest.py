@@ -5,6 +5,7 @@ parametrizes tests based on model capabilities.
 """
 
 import os
+import json
 from typing import Any, Dict, List, Literal
 import pydantic
 import httpx
@@ -24,6 +25,13 @@ def yellow_img(pytestconfig):
     path = pytestconfig.rootdir / "tests/integration/yellow.png"
     with open(path, "rb") as fp:
         return fp.read()
+
+@pytest.fixture
+def audio_data_content(pytestconfig):
+    path = pytestconfig.rootdir / "tests/integration/audio_input_input.json"
+    with open(path, 'r') as f:
+        data = json.load(f)
+        return data
 
 
 @pytest.fixture
