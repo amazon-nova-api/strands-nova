@@ -13,11 +13,8 @@ class TestNovaModelInitialization:
 
     def test_init_with_api_key(self):
         """Test initialization with explicit API key."""
-        model = NovaModel(
-            model_id="nova-pro-v1",
-            api_key="test-api-key"
-        )
-        
+        model = NovaModel(model_id="nova-pro-v1", api_key="test-api-key")
+
         assert model.config["model_id"] == "nova-pro-v1"
         assert model.api_key == "test-api-key"
         assert model.base_url == "https://api.nova.amazon.com/v1"
@@ -29,7 +26,7 @@ class TestNovaModelInitialization:
         """Test initialization with API key from environment variable."""
         with patch.dict(os.environ, {"NOVA_API_KEY": "env-api-key"}):
             model = NovaModel(model_id="nova-lite-v2")
-            
+
             assert model.api_key == "env-api-key"
             assert model.config["model_id"] == "nova-lite-v2"
 
@@ -44,9 +41,9 @@ class TestNovaModelInitialization:
         model = NovaModel(
             model_id="nova-pro-v1",
             api_key="test-key",
-            base_url="https://custom.api.com/v2"
+            base_url="https://custom.api.com/v2",
         )
-        
+
         assert model.base_url == "https://custom.api.com/v2"
 
     def test_init_base_url_strips_trailing_slash(self):
@@ -54,65 +51,45 @@ class TestNovaModelInitialization:
         model = NovaModel(
             model_id="nova-pro-v1",
             api_key="test-key",
-            base_url="https://api.nova.amazon.com/v1/"
+            base_url="https://api.nova.amazon.com/v1/",
         )
-        
+
         assert model.base_url == "https://api.nova.amazon.com/v1"
 
     def test_init_with_custom_timeout(self):
         """Test initialization with custom timeout."""
-        model = NovaModel(
-            model_id="nova-pro-v1",
-            api_key="test-key",
-            timeout=600.0
-        )
-        
+        model = NovaModel(model_id="nova-pro-v1", api_key="test-key", timeout=600.0)
+
         assert model.timeout == 600.0
 
     def test_init_with_params(self):
         """Test initialization with model parameters."""
-        params = {
-            "max_tokens": 1000,
-            "temperature": 0.7,
-            "top_p": 0.9
-        }
-        model = NovaModel(
-            model_id="nova-pro-v1",
-            api_key="test-key",
-            params=params
-        )
-        
+        params = {"max_tokens": 1000, "temperature": 0.7, "top_p": 0.9}
+        model = NovaModel(model_id="nova-pro-v1", api_key="test-key", params=params)
+
         assert model.config["params"] == params
 
     def test_init_with_stream_false(self):
         """Test initialization with streaming disabled."""
-        model = NovaModel(
-            model_id="nova-pro-v1",
-            api_key="test-key",
-            stream=False
-        )
-        
+        model = NovaModel(model_id="nova-pro-v1", api_key="test-key", stream=False)
+
         assert model._stream is False
 
     def test_init_with_custom_stream_options(self):
         """Test initialization with custom stream options."""
         stream_options = {"include_usage": False}
         model = NovaModel(
-            model_id="nova-pro-v1",
-            api_key="test-key",
-            stream_options=stream_options
+            model_id="nova-pro-v1", api_key="test-key", stream_options=stream_options
         )
-        
+
         assert model.stream_options == stream_options
 
     def test_init_with_extra_config(self):
         """Test initialization with extra configuration."""
         model = NovaModel(
-            model_id="nova-pro-v1",
-            api_key="test-key",
-            custom_field="custom_value"
+            model_id="nova-pro-v1", api_key="test-key", custom_field="custom_value"
         )
-        
+
         assert model.config["custom_field"] == "custom_value"
 
 
@@ -122,27 +99,20 @@ class TestNovaModelConfiguration:
     def test_get_config(self):
         """Test getting model configuration."""
         params = {"max_tokens": 500}
-        model = NovaModel(
-            model_id="nova-pro-v1",
-            api_key="test-key",
-            params=params
-        )
-        
+        model = NovaModel(model_id="nova-pro-v1", api_key="test-key", params=params)
+
         config = model.get_config()
-        
+
         assert config["model_id"] == "nova-pro-v1"
         assert config["params"] == params
 
     def test_update_config(self):
         """Test updating model configuration."""
-        model = NovaModel(
-            model_id="nova-pro-v1",
-            api_key="test-key"
-        )
-        
+        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+
         new_params = {"temperature": 0.8, "max_tokens": 2000}
         model.update_config(model_id="nova-lite-v2", params=new_params)
-        
+
         config = model.get_config()
         assert config["model_id"] == "nova-lite-v2"
         assert config["params"] == new_params
@@ -150,14 +120,10 @@ class TestNovaModelConfiguration:
     def test_update_config_partial(self):
         """Test partial configuration update."""
         params = {"max_tokens": 500}
-        model = NovaModel(
-            model_id="nova-pro-v1",
-            api_key="test-key",
-            params=params
-        )
-        
+        model = NovaModel(model_id="nova-pro-v1", api_key="test-key", params=params)
+
         model.update_config(model_id="nova-lite-v2")
-        
+
         config = model.get_config()
         assert config["model_id"] == "nova-lite-v2"
         assert config["params"] == params  # Should remain unchanged

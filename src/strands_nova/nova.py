@@ -10,7 +10,10 @@ from pydantic import BaseModel
 from typing_extensions import Unpack, override
 
 from strands.types.content import ContentBlock, Messages, SystemContentBlock
-from strands.types.exceptions import ContextWindowOverflowException, ModelThrottledException
+from strands.types.exceptions import (
+    ContextWindowOverflowException,
+    ModelThrottledException,
+)
 from strands.types.streaming import StreamEvent
 from strands.types.tools import ToolChoice, ToolResult, ToolSpec, ToolUse
 from strands.tools import convert_pydantic_to_tool_spec
@@ -30,7 +33,7 @@ class NovaModel(Model):
 
     class NovaModelParams(TypedDict, total=False):
         """Nova API model parameters.
-        
+
         Attributes:
             max_tokens: Maximum number of tokens to generate (deprecated, use max_completion_tokens).
             max_completion_tokens: Maximum number of tokens to generate.
@@ -40,7 +43,7 @@ class NovaModel(Model):
             metadata: Additional metadata to include with the request.
             web_search_options: Web search configuration (currently in review).
         """
-        
+
         max_tokens: int
         max_completion_tokens: int
         temperature: float
@@ -85,7 +88,7 @@ class NovaModel(Model):
             _stream: Whether to stream responses (default: True).
             stream_options: Stream options like include_usage (default: {"include_usage": True}).
             **extra_config: Additional configuration options for future extensibility.
-        
+
         Raises:
             ValueError: If api_key is not provided and NOVA_API_KEY environment variable is not set.
         """
@@ -96,19 +99,21 @@ class NovaModel(Model):
                 raise ValueError(
                     "api_key must be provided either as an argument or through the NOVA_API_KEY environment variable"
                 )
-        
+
         self.config: dict[str, Any] = {
             "model_id": model_id,
             "params": params or {},
         }
         # Add any extra config for extensibility
         self.config.update(extra_config)
-        
+
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self._stream = stream
-        self.stream_options = stream_options if stream_options is not None else {"include_usage": True}
+        self.stream_options = (
+            stream_options if stream_options is not None else {"include_usage": True}
+        )
 
         logger.debug("config=<%s> | initializing Nova model", self.config)
 
@@ -131,7 +136,9 @@ class NovaModel(Model):
         return cast(NovaModel.NovaConfig, self.config)
 
     @classmethod
-    def format_request_message_content(cls, content: ContentBlock, **kwargs: Any) -> dict[str, Any]:
+    def format_request_message_content(
+        cls, content: ContentBlock, **kwargs: Any
+    ) -> dict[str, Any]:
         """Format a Nova compatible content block.
 
         Args:
@@ -145,8 +152,12 @@ class NovaModel(Model):
             TypeError: If the content block type cannot be converted to a Nova-compatible format.
         """
         if "document" in content:
-            mime_type = mimetypes.types_map.get(f".{content['document']['format']}", "application/octet-stream")
-            file_data = base64.b64encode(content["document"]["source"]["bytes"]).decode("utf-8")
+            mime_type = mimetypes.types_map.get(
+                f".{content['document']['format']}", "application/octet-stream"
+            )
+            file_data = base64.b64encode(content["document"]["source"]["bytes"]).decode(
+                "utf-8"
+            )
             return {
                 "file": {
                     "file_data": f"data:{mime_type};base64,{file_data}",
@@ -156,8 +167,12 @@ class NovaModel(Model):
             }
 
         if "image" in content:
-            mime_type = mimetypes.types_map.get(f".{content['image']['format']}", "application/octet-stream")
-            image_data = base64.b64encode(content["image"]["source"]["bytes"]).decode("utf-8")
+            mime_type = mimetypes.types_map.get(
+                f".{content['image']['format']}", "application/octet-stream"
+            )
+            image_data = base64.b64encode(content["image"]["source"]["bytes"]).decode(
+                "utf-8"
+            )
 
             return {
                 "type": "image_url",
@@ -167,7 +182,9 @@ class NovaModel(Model):
             }
 
         if "audio" in content:
-            audio_data = base64.b64encode(content["audio"]["source"]["bytes"]).decode("utf-8")
+            audio_data = base64.b64encode(content["audio"]["source"]["bytes"]).decode(
+                "utf-8"
+            )
             audio_format = content["audio"]["format"]
 
             return {
@@ -184,7 +201,9 @@ class NovaModel(Model):
         raise TypeError(f"content_type=<{next(iter(content))}> | unsupported type")
 
     @classmethod
-    def format_request_message_tool_call(cls, tool_use: ToolUse, **kwargs: Any) -> dict[str, Any]:
+    def format_request_message_tool_call(
+        cls, tool_use: ToolUse, **kwargs: Any
+    ) -> dict[str, Any]:
         """Format a Nova compatible tool call.
 
         Args:
@@ -204,7 +223,9 @@ class NovaModel(Model):
         }
 
     @classmethod
-    def format_request_tool_message(cls, tool_result: ToolResult, **kwargs: Any) -> dict[str, Any]:
+    def format_request_tool_message(
+        cls, tool_result: ToolResult, **kwargs: Any
+    ) -> dict[str, Any]:
         """Format a Nova compatible tool message.
 
         Args:
@@ -225,11 +246,15 @@ class NovaModel(Model):
         return {
             "role": "tool",
             "tool_call_id": tool_result["toolUseId"],
-            "content": [cls.format_request_message_content(content) for content in contents],
+            "content": [
+                cls.format_request_message_content(content) for content in contents
+            ],
         }
 
     @classmethod
-    def _format_request_tool_choice(cls, tool_choice: ToolChoice | None) -> dict[str, Any]:
+    def _format_request_tool_choice(
+        cls, tool_choice: ToolChoice | None
+    ) -> dict[str, Any]:
         """Format a tool choice for Nova compatibility.
 
         Args:
@@ -247,7 +272,9 @@ class NovaModel(Model):
             case {"any": _}:
                 return {"tool_choice": "required"}
             case {"tool": {"name": tool_name}}:
-                return {"tool_choice": {"type": "function", "function": {"name": tool_name}}}
+                return {
+                    "tool_choice": {"type": "function", "function": {"name": tool_name}}
+                }
             case _:
                 return {"tool_choice": "auto"}
 
@@ -279,7 +306,9 @@ class NovaModel(Model):
         ]
 
     @classmethod
-    def _format_regular_messages(cls, messages: Messages, **kwargs: Any) -> list[dict[str, Any]]:
+    def _format_regular_messages(
+        cls, messages: Messages, **kwargs: Any
+    ) -> list[dict[str, Any]]:
         """Format regular messages for Nova.
 
         Args:
@@ -302,10 +331,15 @@ class NovaModel(Model):
             formatted_contents = [
                 cls.format_request_message_content(content)
                 for content in contents
-                if not any(block_type in content for block_type in ["toolResult", "toolUse", "reasoningContent"])
+                if not any(
+                    block_type in content
+                    for block_type in ["toolResult", "toolUse", "reasoningContent"]
+                )
             ]
             formatted_tool_calls = [
-                cls.format_request_message_tool_call(content["toolUse"]) for content in contents if "toolUse" in content
+                cls.format_request_message_tool_call(content["toolUse"])
+                for content in contents
+                if "toolUse" in content
             ]
             formatted_tool_messages = [
                 cls.format_request_tool_message(content["toolResult"])
@@ -316,7 +350,9 @@ class NovaModel(Model):
             formatted_message = {
                 "role": message["role"],
                 "content": formatted_contents,
-                **({"tool_calls": formatted_tool_calls} if formatted_tool_calls else {}),
+                **(
+                    {"tool_calls": formatted_tool_calls} if formatted_tool_calls else {}
+                ),
             }
             formatted_messages.append(formatted_message)
             formatted_messages.extend(formatted_tool_messages)
@@ -343,10 +379,16 @@ class NovaModel(Model):
         Returns:
             A Nova compatible messages array.
         """
-        formatted_messages = cls._format_system_messages(system_prompt, system_prompt_content=system_prompt_content)
+        formatted_messages = cls._format_system_messages(
+            system_prompt, system_prompt_content=system_prompt_content
+        )
         formatted_messages.extend(cls._format_regular_messages(messages))
 
-        return [message for message in formatted_messages if message["content"] or "tool_calls" in message]
+        return [
+            message
+            for message in formatted_messages
+            if message["content"] or "tool_calls" in message
+        ]
 
     def format_request(
         self,
@@ -395,11 +437,11 @@ class NovaModel(Model):
             **(self._format_request_tool_choice(tool_choice)),
             **cast(dict[str, Any], self.config.get("params", {})),
         }
-        
+
         # Add stream_options if configured
         if self.stream_options:
             request["stream_options"] = self.stream_options
-        
+
         return request
 
     def format_chunk(self, event: dict[str, Any], **kwargs: Any) -> StreamEvent:
@@ -437,11 +479,19 @@ class NovaModel(Model):
             case "content_delta":
                 if event["data_type"] == "tool":
                     return {
-                        "contentBlockDelta": {"delta": {"toolUse": {"input": event["data"]["arguments"] or ""}}}
+                        "contentBlockDelta": {
+                            "delta": {
+                                "toolUse": {"input": event["data"]["arguments"] or ""}
+                            }
+                        }
                     }
 
                 if event["data_type"] == "reasoning_content":
-                    return {"contentBlockDelta": {"delta": {"reasoningContent": {"text": event["data"]}}}}
+                    return {
+                        "contentBlockDelta": {
+                            "delta": {"reasoningContent": {"text": event["data"]}}
+                        }
+                    }
 
                 return {"contentBlockDelta": {"delta": {"text": event["data"]}}}
 
@@ -510,7 +560,9 @@ class NovaModel(Model):
         else:
             raise Exception(f"Nova API error ({response.status_code}): {error_message}")
 
-    async def _parse_sse_stream(self, response: httpx.Response) -> AsyncGenerator[dict[str, Any], None]:
+    async def _parse_sse_stream(
+        self, response: httpx.Response
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """Parse Server-Sent Events (SSE) stream from Nova API.
 
         Args:
@@ -583,52 +635,94 @@ class NovaModel(Model):
                         self._handle_api_error(response)
 
                     logger.debug("got response from Nova model")
-                    
+
                     # Handle non-streaming response
                     if not self._stream:
                         response_data = await response.aread()
                         response_json = json.loads(response_data)
                         yield self.format_chunk({"chunk_type": "message_start"})
-                        
+
                         if response_json.get("choices"):
                             choice = response_json["choices"][0]
                             message = choice.get("message", {})
-                            
+
                             # Handle text content
                             if message.get("content"):
-                                yield self.format_chunk({"chunk_type": "content_start", "data_type": "text"})
-                                yield self.format_chunk({"chunk_type": "content_delta", "data_type": "text", "data": message["content"]})
-                                yield self.format_chunk({"chunk_type": "content_stop", "data_type": "text"})
-                            
+                                yield self.format_chunk(
+                                    {"chunk_type": "content_start", "data_type": "text"}
+                                )
+                                yield self.format_chunk(
+                                    {
+                                        "chunk_type": "content_delta",
+                                        "data_type": "text",
+                                        "data": message["content"],
+                                    }
+                                )
+                                yield self.format_chunk(
+                                    {"chunk_type": "content_stop", "data_type": "text"}
+                                )
+
                             # Handle tool calls
                             if message.get("tool_calls"):
                                 for tool_call in message["tool_calls"]:
                                     tool_call_data = {
                                         "id": tool_call.get("id", ""),
                                         "type": tool_call.get("type", "function"),
-                                        "name": tool_call.get("function", {}).get("name", ""),
-                                        "arguments": tool_call.get("function", {}).get("arguments", ""),
+                                        "name": tool_call.get("function", {}).get(
+                                            "name", ""
+                                        ),
+                                        "arguments": tool_call.get("function", {}).get(
+                                            "arguments", ""
+                                        ),
                                     }
-                                    yield self.format_chunk({"chunk_type": "content_start", "data_type": "tool", "data": tool_call_data})
-                                    yield self.format_chunk({"chunk_type": "content_delta", "data_type": "tool", "data": tool_call_data})
-                                    yield self.format_chunk({"chunk_type": "content_stop", "data_type": "tool"})
-                            
+                                    yield self.format_chunk(
+                                        {
+                                            "chunk_type": "content_start",
+                                            "data_type": "tool",
+                                            "data": tool_call_data,
+                                        }
+                                    )
+                                    yield self.format_chunk(
+                                        {
+                                            "chunk_type": "content_delta",
+                                            "data_type": "tool",
+                                            "data": tool_call_data,
+                                        }
+                                    )
+                                    yield self.format_chunk(
+                                        {
+                                            "chunk_type": "content_stop",
+                                            "data_type": "tool",
+                                        }
+                                    )
+
                             # Handle finish reason
                             finish_reason = choice.get("finish_reason", "stop")
                             if finish_reason == "tool_calls":
-                                yield self.format_chunk({"chunk_type": "message_stop", "data": "tool_calls"})
+                                yield self.format_chunk(
+                                    {"chunk_type": "message_stop", "data": "tool_calls"}
+                                )
                             elif finish_reason == "length":
-                                yield self.format_chunk({"chunk_type": "message_stop", "data": "length"})
+                                yield self.format_chunk(
+                                    {"chunk_type": "message_stop", "data": "length"}
+                                )
                             else:
-                                yield self.format_chunk({"chunk_type": "message_stop", "data": "stop"})
-                        
+                                yield self.format_chunk(
+                                    {"chunk_type": "message_stop", "data": "stop"}
+                                )
+
                         # Handle usage metadata if present
                         if response_json.get("usage"):
-                            yield self.format_chunk({"chunk_type": "metadata", "data": response_json["usage"]})
-                        
+                            yield self.format_chunk(
+                                {
+                                    "chunk_type": "metadata",
+                                    "data": response_json["usage"],
+                                }
+                            )
+
                         logger.debug("finished non-streaming response from Nova model")
                         return
-                    
+
                     # Handle streaming response
                     yield self.format_chunk({"chunk_type": "message_start"})
 
@@ -641,8 +735,10 @@ class NovaModel(Model):
                         # Check for usage data (appears in streaming if include_usage is true)
                         if event.get("usage"):
                             usage_data = event["usage"]
-                            yield self.format_chunk({"chunk_type": "metadata", "data": usage_data})
-                        
+                            yield self.format_chunk(
+                                {"chunk_type": "metadata", "data": usage_data}
+                            )
+
                         if not event.get("choices"):
                             continue
 
@@ -651,7 +747,9 @@ class NovaModel(Model):
 
                         # Handle reasoning content
                         if delta.get("reasoning_content"):
-                            chunks, data_type = self._stream_switch_content("reasoning_content", data_type)
+                            chunks, data_type = self._stream_switch_content(
+                                "reasoning_content", data_type
+                            )
                             for chunk in chunks:
                                 yield chunk
                             yield self.format_chunk(
@@ -664,11 +762,17 @@ class NovaModel(Model):
 
                         # Handle regular content
                         if delta.get("content"):
-                            chunks, data_type = self._stream_switch_content("text", data_type)
+                            chunks, data_type = self._stream_switch_content(
+                                "text", data_type
+                            )
                             for chunk in chunks:
                                 yield chunk
                             yield self.format_chunk(
-                                {"chunk_type": "content_delta", "data_type": data_type, "data": delta["content"]}
+                                {
+                                    "chunk_type": "content_delta",
+                                    "data_type": data_type,
+                                    "data": delta["content"],
+                                }
                             )
 
                         # Handle tool calls
@@ -679,27 +783,55 @@ class NovaModel(Model):
                                     tool_calls[index] = {
                                         "id": tool_call.get("id", ""),
                                         "type": tool_call.get("type", "function"),
-                                        "name": tool_call.get("function", {}).get("name", ""),
+                                        "name": tool_call.get("function", {}).get(
+                                            "name", ""
+                                        ),
                                         "arguments": "",
                                     }
 
                                 # Accumulate arguments
-                                if "function" in tool_call and "arguments" in tool_call["function"]:
-                                    tool_calls[index]["arguments"] += tool_call["function"]["arguments"]
+                                if (
+                                    "function" in tool_call
+                                    and "arguments" in tool_call["function"]
+                                ):
+                                    tool_calls[index]["arguments"] += tool_call[
+                                        "function"
+                                    ]["arguments"]
 
                         # Handle finish reason - don't break, continue to capture usage data
                         if choice.get("finish_reason") and not finish_reason:
                             finish_reason = choice["finish_reason"]
                             if data_type:
-                                yield self.format_chunk({"chunk_type": "content_stop", "data_type": data_type})
+                                yield self.format_chunk(
+                                    {
+                                        "chunk_type": "content_stop",
+                                        "data_type": data_type,
+                                    }
+                                )
 
                     # Emit tool calls
                     for tool_call_data in tool_calls.values():
-                        yield self.format_chunk({"chunk_type": "content_start", "data_type": "tool", "data": tool_call_data})
-                        yield self.format_chunk({"chunk_type": "content_delta", "data_type": "tool", "data": tool_call_data})
-                        yield self.format_chunk({"chunk_type": "content_stop", "data_type": "tool"})
+                        yield self.format_chunk(
+                            {
+                                "chunk_type": "content_start",
+                                "data_type": "tool",
+                                "data": tool_call_data,
+                            }
+                        )
+                        yield self.format_chunk(
+                            {
+                                "chunk_type": "content_delta",
+                                "data_type": "tool",
+                                "data": tool_call_data,
+                            }
+                        )
+                        yield self.format_chunk(
+                            {"chunk_type": "content_stop", "data_type": "tool"}
+                        )
 
-                    yield self.format_chunk({"chunk_type": "message_stop", "data": finish_reason or "stop"}) 
+                    yield self.format_chunk(
+                        {"chunk_type": "message_stop", "data": finish_reason or "stop"}
+                    )
 
                     logger.debug("finished streaming response from Nova model")
 
@@ -710,7 +842,9 @@ class NovaModel(Model):
                 logger.error(f"Nova API request error: {e}")
                 raise
 
-    def _stream_switch_content(self, data_type: str, prev_data_type: str | None) -> tuple[list[StreamEvent], str]:
+    def _stream_switch_content(
+        self, data_type: str, prev_data_type: str | None
+    ) -> tuple[list[StreamEvent], str]:
         """Handle switching to a new content stream.
 
         Args:
@@ -725,14 +859,26 @@ class NovaModel(Model):
         chunks = []
         if data_type != prev_data_type:
             if prev_data_type is not None:
-                chunks.append(self.format_chunk({"chunk_type": "content_stop", "data_type": prev_data_type}))
-            chunks.append(self.format_chunk({"chunk_type": "content_start", "data_type": data_type}))
+                chunks.append(
+                    self.format_chunk(
+                        {"chunk_type": "content_stop", "data_type": prev_data_type}
+                    )
+                )
+            chunks.append(
+                self.format_chunk(
+                    {"chunk_type": "content_start", "data_type": data_type}
+                )
+            )
 
         return chunks, data_type
 
     @override
     async def structured_output(
-        self, output_model: Type[T], prompt: Messages, system_prompt: Optional[str] = None, **kwargs: Any
+        self,
+        output_model: Type[T],
+        prompt: Messages,
+        system_prompt: Optional[str] = None,
+        **kwargs: Any,
     ) -> AsyncGenerator[dict[str, Union[T, Any]], None]:
         """Get structured output from the Nova model using tool calling.
 
@@ -752,12 +898,14 @@ class NovaModel(Model):
         """
         logger.debug("using tool calling for structured output")
         tool_spec = convert_pydantic_to_tool_spec(output_model)
-        request = self.format_request(prompt, [tool_spec], system_prompt, cast(ToolChoice, {"any": {}}))
-        
+        request = self.format_request(
+            prompt, [tool_spec], system_prompt, cast(ToolChoice, {"any": {}})
+        )
+
         # Structured output must be non-streaming, override stream settings
         request["stream"] = False
         request.pop("stream_options", None)
-        
+
         logger.debug("invoking Nova model for structured output")
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
@@ -782,27 +930,27 @@ class NovaModel(Model):
                 raise
 
             logger.debug("got structured output response from Nova model")
-            
+
             # Parse response
             response_data = response.json()
-            
+
             if not response_data.get("choices"):
                 raise ValueError("No choices found in the response")
-            
+
             if len(response_data["choices"]) > 1:
                 raise ValueError("Multiple choices found in the response")
-            
+
             choice = response_data["choices"][0]
-            
+
             if choice.get("finish_reason") != "tool_calls":
                 raise ValueError("No tool_calls found in response")
-            
+
             message = choice.get("message", {})
             tool_calls = message.get("tool_calls", [])
-            
+
             if not tool_calls:
                 raise ValueError("No tool_calls found in message")
-            
+
             try:
                 # Parse the tool call content as JSON
                 tool_call = tool_calls[0]
@@ -811,6 +959,8 @@ class NovaModel(Model):
                 structured_output = output_model(**tool_call_data)
                 yield {"output": structured_output}
             except (json.JSONDecodeError, TypeError, ValueError) as e:
-                raise ValueError(f"Failed to parse or load content into model: {e}") from e
+                raise ValueError(
+                    f"Failed to parse or load content into model: {e}"
+                ) from e
 
         logger.debug("finished structured output from Nova model")

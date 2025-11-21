@@ -7,23 +7,25 @@ from strands import Agent
 
 from strands_nova import NovaModel
 
+
 def yellow_img():
     """Load yellow image for testing."""
     with open("tests/integration/yellow.png", "rb") as fp:
         return fp.read()
+
 
 async def basic_streaming():
     """Demonstrate basic streaming with Strands Agent."""
 
     # Initialize model
     model = NovaModel(
-        model_id="nova-pro-v1", 
+        model_id="nova-pro-v1",
         params={
             "temperature": 0.3,
             "max_tokens": 512,
         },
         stream=True,
-        stream_options={'include_usage': True}
+        stream_options={"include_usage": True},
     )
 
     # Create agent
@@ -31,9 +33,7 @@ async def basic_streaming():
 
     print("Question: What are the seven colors of the rainbow?\n")
     print("Response: ", end="", flush=True)
-    async for event in agent.stream_async(
-        "What are the seven colors of the rainbow?"
-    ):
+    async for event in agent.stream_async("What are the seven colors of the rainbow?"):
         if "data" in event:
             print(event["data"], end="", flush=True)
         # Print usage metadata when available
@@ -44,18 +44,19 @@ async def basic_streaming():
                 print(f"\n\nUsage: {usage}")
     print("\n")
 
+
 async def image_streaming():
     """Demonstrate basic streaming with Strands Agent."""
 
     # Initialize model
     model = NovaModel(
-        model_id="nova-pro-v1", 
+        model_id="nova-pro-v1",
         params={
             "temperature": 0.3,
             "max_tokens": 512,
         },
         stream=True,
-        stream_options={'include_usage': True}
+        stream_options={"include_usage": True},
     )
 
     # Create agent
@@ -74,9 +75,7 @@ async def image_streaming():
     ]
     print("Question: Is this image red, blue, or yellow??\n")
     print("Response: ", end="", flush=True)
-    async for event in agent.stream_async(
-        content
-    ):
+    async for event in agent.stream_async(content):
         if "data" in event:
             print(event["data"], end="", flush=True)
     print("\n")

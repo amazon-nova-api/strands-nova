@@ -18,6 +18,7 @@ from strands_nova import NovaModel
 # Load environment variables
 load_dotenv()
 
+
 @pytest.fixture
 def yellow_img(pytestconfig):
     path = pytestconfig.rootdir / "tests/integration/yellow.png"
@@ -32,6 +33,7 @@ def model():
         api_key=os.getenv("NOVA_API_KEY"),
     )
 
+
 @pytest.fixture
 def weather():
     class Weather(pydantic.BaseModel):
@@ -41,6 +43,7 @@ def weather():
         weather: str
 
     return Weather(time="12:00", weather="sunny")
+
 
 @pytest.fixture
 def yellow_color():
@@ -55,6 +58,7 @@ def yellow_color():
             return value.lower()
 
     return Color(name="yellow")
+
 
 @pytest.fixture
 def tools():

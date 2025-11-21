@@ -6,10 +6,12 @@ from strands import Agent
 
 from strands_nova import NovaModel
 
+
 def yellow_img():
     """Load yellow image for testing."""
     with open("tests/integration/yellow.png", "rb") as fp:
         return fp.read()
+
 
 def main():
     """Run basic example."""
@@ -20,12 +22,12 @@ def main():
     # (api_key will be inferred from NOVA_API_KEY environment variable)
     try:
         model = NovaModel(
-            model_id="nova-pro-v1", 
+            model_id="nova-pro-v1",
             params={
-            "temperature": 0.3,
-            "max_tokens": 512,
+                "temperature": 0.3,
+                "max_tokens": 512,
             },
-            stream=False  # Disable streaming to get usage metrics
+            stream=False,  # Disable streaming to get usage metrics
         )
     except ValueError as e:
         print(f"Error: {e}")

@@ -14,7 +14,7 @@ def sample_messages():
     """Provide sample messages for testing."""
     return [
         {"role": "user", "content": [{"text": "Hello, how are you?"}]},
-        {"role": "assistant", "content": [{"text": "I'm doing well, thank you!"}]}
+        {"role": "assistant", "content": [{"text": "I'm doing well, thank you!"}]},
     ]
 
 
@@ -30,9 +30,9 @@ def sample_tool_spec():
                 "properties": {
                     "location": {"type": "string", "description": "The city name"}
                 },
-                "required": ["location"]
+                "required": ["location"],
             }
-        }
+        },
     }
 
 

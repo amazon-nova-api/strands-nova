@@ -31,11 +31,11 @@ class ProviderInfo:
 
 # Nova provider configuration
 nova = ProviderInfo(
-    id='nova-api',
+    id="nova-api",
     model_id="nova-pro-v1",
     environment_variable="NOVA_API_KEY",
     factory=lambda model_id: NovaModel(
         model_id=model_id,
         api_key=os.getenv("NOVA_API_KEY"),
-    )
+    ),
 )

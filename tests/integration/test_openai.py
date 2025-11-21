@@ -2,11 +2,15 @@ import os
 import unittest.mock
 import pytest
 from strands import Agent, tool
-from strands.types.exceptions import ContextWindowOverflowException, ModelThrottledException
+from strands.types.exceptions import (
+    ContextWindowOverflowException,
+    ModelThrottledException,
+)
 from strands_nova import NovaModel
 from provider_info import nova
 
 pytestmark = nova.mark
+
 
 def test_agent_invoke(agent):
     result = agent("What is the time and weather in New York?")
@@ -36,20 +40,30 @@ async def test_agent_stream_async(agent):
 
 
 def test_agent_structured_output(agent, weather):
-    tru_weather = agent.structured_output(type(weather), "The time is 12:00 and the weather is sunny")
+    tru_weather = agent.structured_output(
+        type(weather), "The time is 12:00 and the weather is sunny"
+    )
     exp_weather = weather
     assert tru_weather == exp_weather
+
 
 @pytest.mark.asyncio
 async def test_agent_structured_output_async(agent, weather):
-    tru_weather = await agent.structured_output_async(type(weather), "The time is 12:00 and the weather is sunny")
+    tru_weather = await agent.structured_output_async(
+        type(weather), "The time is 12:00 and the weather is sunny"
+    )
     exp_weather = weather
     assert tru_weather == exp_weather
 
+
 def test_agent_structured_output_model(agent, weather):
-    tru_weather = agent("The time is 12:00 and the weather is sunny", structured_output_model=type(weather)).structured_output
+    tru_weather = agent(
+        "The time is 12:00 and the weather is sunny",
+        structured_output_model=type(weather),
+    ).structured_output
     exp_weather = weather
     assert tru_weather == exp_weather
+
 
 def test_invoke_multi_modal_input(agent, yellow_img):
     content = [
@@ -85,6 +99,7 @@ def test_structured_output_multi_modal_input(agent, yellow_img, yellow_color):
     exp_color = yellow_color
     assert tru_color == exp_color
 
+
 def test_structured_output_model_multi_modal_input(agent, yellow_img, yellow_color):
     content = [
         {"text": "Is this image red, blue, or yellow?"},
@@ -97,7 +112,9 @@ def test_structured_output_model_multi_modal_input(agent, yellow_img, yellow_col
             },
         },
     ]
-    tru_color = agent(content, structured_output_model=type(yellow_color)).structured_output
+    tru_color = agent(
+        content, structured_output_model=type(yellow_color)
+    ).structured_output
     exp_color = yellow_color
     assert tru_color == exp_color
 
@@ -124,34 +141,34 @@ def test_tool_returning_images(model, yellow_img):
     # See https://github.com/strands-agents/sdk-python/issues/320 for additional details
     agent("Run the the tool and analyze the image")
 
+
 @pytest.mark.skip("Need information on model limits")
 def test_context_window_overflow_integration():
-    """Integration test for context window overflow with Nova.
-    """
+    """Integration test for context window overflow with Nova."""
     mini_model = NovaModel(
         model_id="nova-micro-v1",
-        api_key= os.getenv("NOVA_API_KEY"),
+        api_key=os.getenv("NOVA_API_KEY"),
     )
 
     agent = Agent(model=mini_model)
 
     long_text = (
-        "This text is longer than context window, but short enough to not get caught in token rate limit. " * 10000
+        "This text is longer than context window, but short enough to not get caught in token rate limit. "
+        * 10000
     )
 
     with pytest.raises(ContextWindowOverflowException):
         agent(long_text)
 
+
 @pytest.mark.skip("Need information on API limits")
 def test_rate_limit_throttling_integration_no_retries():
-    """Integration test for rate limit handling with retries disabled.
-
-    """
+    """Integration test for rate limit handling with retries disabled."""
     # Patch the event loop constants to disable retries for this test
     with unittest.mock.patch("strands.event_loop.event_loop.MAX_ATTEMPTS", 1):
         mini_model = NovaModel(
-        model_id="nova-micro-v1",
-        api_key= os.getenv("NOVA_API_KEY"),
+            model_id="nova-micro-v1",
+            api_key=os.getenv("NOVA_API_KEY"),
         )
         agent = Agent(model=mini_model)
 
@@ -183,7 +200,9 @@ def test_system_prompt_content_integration(model):
     from strands.types.content import SystemContentBlock
 
     system_prompt_content: list[SystemContentBlock] = [
-        {"text": "You are a helpful assistant that always responds with 'SYSTEM_TEST_RESPONSE'."}
+        {
+            "text": "You are a helpful assistant that always responds with 'SYSTEM_TEST_RESPONSE'."
+        }
     ]
 
     agent = Agent(model=model, system_prompt=system_prompt_content)
@@ -195,7 +214,9 @@ def test_system_prompt_content_integration(model):
 
 def test_system_prompt_backward_compatibility_integration(model):
     """Integration test for backward compatibility with system_prompt parameter."""
-    system_prompt = "You are a helpful assistant that always responds with 'BACKWARD_COMPAT_TEST'."
+    system_prompt = (
+        "You are a helpful assistant that always responds with 'BACKWARD_COMPAT_TEST'."
+    )
 
     agent = Agent(model=model, system_prompt=system_prompt)
     result = agent("Hello")
