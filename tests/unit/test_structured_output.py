@@ -518,6 +518,7 @@ class TestStructuredOutputFormatting:
             mock_response.json.return_value = {
                 "error": {"message": "context length exceeded"}
             }
+            mock_response.aread = AsyncMock()
 
             mock_client_instance = MagicMock()
             mock_client_instance.post = AsyncMock(return_value=mock_response)
@@ -552,6 +553,7 @@ class TestStructuredOutputFormatting:
             mock_response.json.return_value = {
                 "error": {"message": "rate limit exceeded"}
             }
+            mock_response.aread = AsyncMock()
 
             mock_client_instance = MagicMock()
             mock_client_instance.post = AsyncMock(return_value=mock_response)

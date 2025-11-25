@@ -22,10 +22,10 @@ def test_text_agent_invoke(model_id):
     """Test basic agent invocation with text models."""
     model = NovaModel(model_id=model_id, api_key=os.getenv("NOVA_API_KEY"))
     agent = Agent(model=model, load_tools_from_directory=False)
-    
+
     result = agent("What is 2+2? Reply with just the number.")
     text = result.message["content"][0]["text"]
-    
+
     assert "4" in text
 
 
@@ -35,10 +35,10 @@ async def test_text_agent_invoke_async(model_id):
     """Test async agent invocation with text models."""
     model = NovaModel(model_id=model_id, api_key=os.getenv("NOVA_API_KEY"))
     agent = Agent(model=model, load_tools_from_directory=False)
-    
+
     result = await agent.invoke_async("What is 2+2? Reply with just the number.")
     text = result.message["content"][0]["text"]
-    
+
     assert "4" in text
 
 
@@ -48,15 +48,16 @@ async def test_text_agent_stream_async(model_id):
     """Test async streaming with text models."""
     model = NovaModel(model_id=model_id, api_key=os.getenv("NOVA_API_KEY"))
     agent = Agent(model=model, load_tools_from_directory=False)
-    
+
     stream = agent.stream_async("What is 2+2? Reply with just the number.")
     async for event in stream:
         _ = event
-    
+
     result = event["result"]
     text = result.message["content"][0]["text"]
-    
+
     assert "4" in text
+
 
 @pytest.mark.requires_capability("multimodal")
 def test_model_with_temperature_parameter(model_id):
@@ -67,10 +68,10 @@ def test_model_with_temperature_parameter(model_id):
         params={"temperature": 0.1},
     )
     agent = Agent(model=model, load_tools_from_directory=False)
-    
+
     result = agent("Count from 1 to 5, separated by commas.")
     text = result.message["content"][0]["text"]
-    
+
     assert "1" in text and "5" in text
 
 
@@ -83,22 +84,23 @@ def test_model_with_max_tokens_parameter(model_id):
         params={"max_completion_tokens": 100},
     )
     agent = Agent(model=model, load_tools_from_directory=False)
-    
+
     result = agent("Write a short essay about artificial intelligence in 20 words.")
     text = result.message["content"][0]["text"]
-    
+
     # Response should be short due to token limit
     assert len(text.split()) < 50
+
 
 @pytest.mark.requires_capability("multimodal")
 def test_text_agent_with_tools(model_id, tools):
     """Test agent with tools using text models."""
     model = NovaModel(model_id=model_id, api_key=os.getenv("NOVA_API_KEY"))
     agent = Agent(model=model, tools=tools)
-    
+
     result = agent("What is the time and weather in New York?")
     text = result.message["content"][0]["text"].lower()
-    
+
     assert all(string in text for string in ["12:00", "sunny"])
 
 
@@ -107,7 +109,7 @@ def test_text_agent_structured_output(model_id, weather):
     """Test structured output with text models."""
     model = NovaModel(model_id=model_id, api_key=os.getenv("NOVA_API_KEY"))
     agent = Agent(model=model, load_tools_from_directory=False)
-    
+
     tru_weather = agent.structured_output(
         type(weather), "The time is 12:00 and the weather is sunny"
     )
@@ -121,7 +123,7 @@ async def test_text_agent_structured_output_async(model_id, weather):
     """Test async structured output with text models."""
     model = NovaModel(model_id=model_id, api_key=os.getenv("NOVA_API_KEY"))
     agent = Agent(model=model, load_tools_from_directory=False)
-    
+
     tru_weather = await agent.structured_output_async(
         type(weather), "The time is 12:00 and the weather is sunny"
     )
@@ -133,11 +135,15 @@ async def test_text_agent_structured_output_async(model_id, weather):
 def test_text_agent_system_prompt(model_id):
     """Test system prompt with text models."""
     model = NovaModel(model_id=model_id, api_key=os.getenv("NOVA_API_KEY"))
-    system_prompt = "You are a helpful assistant that always responds with 'SYSTEM_TEST_RESPONSE'."
-    agent = Agent(model=model, system_prompt=system_prompt, load_tools_from_directory=False)
-    
+    system_prompt = (
+        "You are a helpful assistant that always responds with 'SYSTEM_TEST_RESPONSE'."
+    )
+    agent = Agent(
+        model=model, system_prompt=system_prompt, load_tools_from_directory=False
+    )
+
     result = agent("Hello")
-    
+
     assert "SYSTEM_TEST_RESPONSE" in result.message["content"][0]["text"]
 
 
@@ -146,10 +152,10 @@ def test_text_content_blocks_handling(model_id):
     """Test that content blocks are handled properly with text models."""
     model = NovaModel(model_id=model_id, api_key=os.getenv("NOVA_API_KEY"))
     content = [{"text": "What is 2+2?"}, {"text": "Please be brief."}]
-    
+
     agent = Agent(model=model, load_tools_from_directory=False)
     result = agent(content)
-    
+
     assert "4" in result.message["content"][0]["text"]
 
 
@@ -158,7 +164,7 @@ def test_multimodal_image_input(model_id, yellow_img):
     """Test image input with multimodal models."""
     model = NovaModel(model_id=model_id, api_key=os.getenv("NOVA_API_KEY"))
     agent = Agent(model=model, load_tools_from_directory=False)
-    
+
     content = [
         {"text": "Is this image red, blue, or yellow?"},
         {
@@ -170,7 +176,7 @@ def test_multimodal_image_input(model_id, yellow_img):
     ]
     result = agent(content)
     text = result.message["content"][0]["text"].lower()
-    
+
     assert "yellow" in text
 
 
@@ -179,7 +185,7 @@ def test_multimodal_structured_output_with_image(model_id, yellow_img, yellow_co
     """Test structured output with image input for multimodal models."""
     model = NovaModel(model_id=model_id, api_key=os.getenv("NOVA_API_KEY"))
     agent = Agent(model=model, load_tools_from_directory=False)
-    
+
     content = [
         {"text": "Is this image red, blue, or yellow?"},
         {
@@ -195,11 +201,13 @@ def test_multimodal_structured_output_with_image(model_id, yellow_img, yellow_co
 
 
 @pytest.mark.requires_capability("multimodal")
-def test_multimodal_structured_output_model_with_image(model_id, yellow_img, yellow_color):
+def test_multimodal_structured_output_model_with_image(
+    model_id, yellow_img, yellow_color
+):
     """Test structured_output_model parameter with image input."""
     model = NovaModel(model_id=model_id, api_key=os.getenv("NOVA_API_KEY"))
     agent = Agent(model=model, load_tools_from_directory=False)
-    
+
     content = [
         {"text": "Is this image red, blue, or yellow?"},
         {
@@ -216,52 +224,52 @@ def test_multimodal_structured_output_model_with_image(model_id, yellow_img, yel
     assert tru_color == exp_color
 
 
+# @pytest.mark.requires_capability("audio")
+# def test_multimodal_audio_input(model_id, audio_data_content):
+#     """Test audio input with multimodal models."""
+#     model = NovaModel(model_id=model_id, api_key=os.getenv("NOVA_API_KEY"))
+#     agent = Agent(model=model, load_tools_from_directory=False)
+
+#     audio_file = audio_data_content['messages'][0]['content'][1]['input_audio']
+#     content = [
+#         {"text": "Describe what's in this audio."},
+#         {
+#             "audio": {
+#                 "format": audio_file['format'],
+#                 "source": {"bytes": audio_file['data']}
+#             }
+#         }
+#     ]
+
+#     try:
+#         result = agent(content)
+#         text = result.message["content"][0]["text"]
+#         assert len(text) > 0, "Model should respond to audio input"
+#     except Exception as e:
+#         if "audio" in str(e).lower() or "format" in str(e).lower():
+#             pytest.skip(f"Model {model_id} does not support audio input: {e}")
+#         raise
+
+
 @pytest.mark.requires_capability("multimodal")
-def test_multimodal_audio_input(model_id, audio_data_content):
-    """Test audio input with multimodal models."""
-    model = NovaModel(model_id=model_id, api_key=os.getenv("NOVA_API_KEY"))
-    agent = Agent(model=model, load_tools_from_directory=False)
-
-    audio_file = audio_data_content()['messages'][0]['content'][1]['input_audio']
-    content = [
-        {"text": "Describe what's in this audio."},
-        {
-            "audio": {
-                "format": audio_file['format'],
-                "source": {"bytes": audio_file['data']}
-            }
-        }
-    ]
-    
-    try:
-        result = agent(content)
-        text = result.message["content"][0]["text"]
-        assert len(text) > 0, "Model should respond to audio input"
-    except Exception as e:
-        if "audio" in str(e).lower() or "format" in str(e).lower():
-            pytest.skip(f"Model {model_id} does not support audio input: {e}")
-        raise
-
-
-@pytest.mark.requires_capability("multimodal")
-def test_multimodal_file_input(model_id):
+def test_multimodal_file_input(model_id, test_document):
     """Test file/document input with multimodal models."""
     model = NovaModel(model_id=model_id, api_key=os.getenv("NOVA_API_KEY"))
     agent = Agent(model=model, load_tools_from_directory=False)
-    
-    document_content = b"This is a test document with important information about the number 42."
-    
+
     content = [
-        {"text": "What number is mentioned in this document? Reply with just the number."},
+        {
+            "text": "What number is mentioned in this document? Reply with just the number."
+        },
         {
             "document": {
                 "format": "txt",
-                "source": {"bytes": document_content},
-                "name": "test_document.txt"
+                "source": {"bytes": test_document},
+                "name": "test.txt",
             }
-        }
+        },
     ]
-    
+
     try:
         result = agent(content)
         text = result.message["content"][0]["text"]
@@ -270,6 +278,7 @@ def test_multimodal_file_input(model_id):
         if "document" in str(e).lower() or "format" in str(e).lower():
             pytest.skip(f"Model {model_id} does not support document input: {e}")
         raise
+
 
 # =============================================================================
 # TODO: RESEARCH MODEL TESTS

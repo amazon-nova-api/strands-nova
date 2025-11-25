@@ -3,7 +3,18 @@ import json
 import logging
 import mimetypes
 import os
-from typing import Any, AsyncGenerator, Optional, Type, TypedDict, TypeVar, Union, cast
+from enum import Enum
+from typing import (
+    Any,
+    AsyncGenerator,
+    Optional,
+    Type,
+    TypedDict,
+    TypeVar,
+    Union,
+    cast,
+    Dict,
+)
 
 import httpx
 from pydantic import BaseModel
@@ -24,6 +35,20 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=BaseModel)
 
 
+class NovaSystemTool(str, Enum):
+    """Predefined Nova system tools.
+
+    These are built-in tools provided by the Nova API. You can also pass
+    custom tool names as strings if needed.
+    """
+
+    GROUNDING = "nova_grounding"
+    """Provides grounded responses with citations and sources."""
+
+    CODE_INTERPRETER = "nova_code_interpreter"
+    """Interprets and executes code in a sandboxed environment."""
+
+
 class NovaModel(Model):
     """Nova model provider implementation using httpx for direct API access."""
 
@@ -41,7 +66,17 @@ class NovaModel(Model):
             top_p: Nucleus sampling parameter (0.0 to 1.0). Controls diversity.
             reasoning_effort: Reasoning effort level for reasoning models. Must be one of: "low", "medium", "high".
             metadata: Additional metadata to include with the request.
-            web_search_options: Web search configuration (currently in review).
+            system_tools: List of system tools to enable. Use NovaSystemTool enum values for built-in tools
+                (NovaSystemTool.GROUNDING, NovaSystemTool.CODE_INTERPRETER) or pass custom tool names as strings.
+                Examples:
+                    # Using enum values
+                    system_tools=[NovaSystemTool.GROUNDING, NovaSystemTool.CODE_INTERPRETER]
+
+                    # Using string values
+                    system_tools=["nova_grounding", "custom_tool"]
+
+                    # Mixed
+                    system_tools=[NovaSystemTool.GROUNDING, "custom_tool"]
         """
 
         max_tokens: int
@@ -50,7 +85,7 @@ class NovaModel(Model):
         top_p: float
         reasoning_effort: str  # "low" | "medium" | "high"
         metadata: dict[str, Any]
-        web_search_options: dict[str, Any]
+        system_tools: list[Union[NovaSystemTool, str]]
 
     class NovaConfig(TypedDict, total=False):
         """Configuration options for Nova models.
@@ -72,7 +107,7 @@ class NovaModel(Model):
         api_key: Optional[str] = None,
         base_url: str = "https://api.nova.amazon.com/v1",
         timeout: float = 300.0,
-        params: Optional[dict[str, Any]] = None,
+        params: Union[NovaModelParams, dict[str, Any], None] = None,
         stream: bool = True,
         stream_options: Optional[dict[str, Any]] = None,
         **extra_config: Any,
@@ -84,8 +119,16 @@ class NovaModel(Model):
             api_key: Nova API key for authentication. If not provided, will be inferred from NOVA_API_KEY environment variable.
             base_url: Base URL for Nova API (default: https://api.nova.amazon.com/v1).
             timeout: Request timeout in seconds (default: 300.0).
-            params: Model parameters (max_tokens, temperature, etc.).
-            _stream: Whether to stream responses (default: True).
+            params: Model parameters. Supports NovaModelParams typed parameters (max_tokens, max_completion_tokens,
+                temperature, top_p, reasoning_effort, metadata, system_tools) as well as any additional custom
+                parameters that will be passed through to the Nova API.
+                Examples:
+                    # Using typed parameters with IDE autocomplete
+                    params: NovaModelParams = {"temperature": 0.7, "max_tokens": 1000}
+
+                    # Mix typed and custom parameters
+                    params = {"temperature": 0.7, "custom_param": "value"}
+            stream: Whether to stream responses (default: True).
             stream_options: Stream options like include_usage (default: {"include_usage": True}).
             **extra_config: Additional configuration options for future extensibility.
 
@@ -104,7 +147,6 @@ class NovaModel(Model):
             "model_id": model_id,
             "params": params or {},
         }
-        # Add any extra config for extensibility
         self.config.update(extra_config)
 
         self.api_key = api_key
@@ -183,15 +225,16 @@ class NovaModel(Model):
 
         if "audio" in content:
             # Handle both raw bytes and already-encoded base64 strings
-            audio_source = content["audio"]["source"]["bytes"]
-            if isinstance(audio_source, str):
+            audio_source = cast(Dict[str, Any], content)
+            audio_bytes = audio_source["audio"]["source"]["bytes"]
+            if isinstance(audio_bytes, str):
                 # Already base64 encoded
-                audio_data = audio_source
+                audio_data = audio_bytes
             else:
                 # Raw bytes, need to encode
-                audio_data = base64.b64encode(audio_source).decode("utf-8")
-            
-            audio_format = content["audio"]["format"]
+                audio_data = base64.b64encode(audio_bytes).decode("utf-8")
+
+            audio_format = audio_source["audio"]["format"]
 
             return {
                 "type": "input_audio",
@@ -444,7 +487,6 @@ class NovaModel(Model):
             **cast(dict[str, Any], self.config.get("params", {})),
         }
 
-        # Add stream_options if configured
         if self.stream_options:
             request["stream_options"] = self.stream_options
 
@@ -627,7 +669,6 @@ class NovaModel(Model):
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             try:
-                # Use stream() context manager for actual streaming
                 async with client.stream(
                     "POST",
                     f"{self.base_url}/chat/completions",
@@ -638,6 +679,7 @@ class NovaModel(Model):
                     },
                 ) as response:
                     if response.status_code != 200:
+                        await response.aread()
                         self._handle_api_error(response)
 
                     logger.debug("got response from Nova model")
@@ -804,7 +846,7 @@ class NovaModel(Model):
                                         "function"
                                     ]["arguments"]
 
-                        # Handle finish reason - don't break, continue to capture usage data
+                        # Handle finish reason
                         if choice.get("finish_reason") and not finish_reason:
                             finish_reason = choice["finish_reason"]
                             if data_type:
@@ -908,9 +950,7 @@ class NovaModel(Model):
             prompt, [tool_spec], system_prompt, cast(ToolChoice, {"any": {}})
         )
 
-        # Structured output must be non-streaming, override stream settings
         request["stream"] = False
-        request.pop("stream_options", None)
 
         logger.debug("invoking Nova model for structured output")
 
@@ -926,6 +966,7 @@ class NovaModel(Model):
                 )
 
                 if response.status_code != 200:
+                    await response.aread()
                     self._handle_api_error(response)
 
             except httpx.TimeoutException as e:

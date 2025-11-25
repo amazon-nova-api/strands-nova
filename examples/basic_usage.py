@@ -17,9 +17,6 @@ def main():
     """Run basic example."""
     # Load environment variables
     load_dotenv()
-
-    # Initialize model with stream=False to get usage metrics
-    # (api_key will be inferred from NOVA_API_KEY environment variable)
     try:
         model = NovaModel(
             model_id="nova-pro-v1",
@@ -27,14 +24,16 @@ def main():
                 "temperature": 0.3,
                 "max_tokens": 512,
             },
-            stream=False,  # Disable streaming to get usage metrics
+            stream=False,
         )
     except ValueError as e:
         print(f"Error: {e}")
         return
 
     # Create agent
-    agent = Agent(model=model, callback_handler=None)
+    agent = Agent(
+        model=model, callback_handler=None, system_prompt="You are a helpful assistant."
+    )
 
     # Simple conversation
     print("Question: What are the seven colors of the rainbow?")

@@ -33,8 +33,9 @@ def main():
     response = httpx.get(models_url, headers=headers, timeout=30.0)
     response.raise_for_status()
     data = response.json()
+    print(data)
 
-    models = [m for m in data.get("data", []) if m.get("owned_by") == "Amazon"]
+    models = [m for m in data.get("data", [])]
 
     print("=" * 80)
     print("NOVA MODEL CATEGORIZATION")

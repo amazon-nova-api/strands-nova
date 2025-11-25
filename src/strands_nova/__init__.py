@@ -5,10 +5,10 @@ API for Amazon's Nova family of models) and the Strands Agents SDK, enabling
 access to Nova Pro, Nova Premier, reasoning models, and image generation capabilities.
 """
 
-from .nova import NovaModel
+from .nova import NovaModel, NovaSystemTool
 
 __version__ = "0.1.0"
-__all__ = ["NovaModel"]
+__all__ = ["NovaModel", "NovaSystemTool"]
 
 
 # Convenience exports for common use cases

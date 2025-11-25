@@ -5,7 +5,7 @@ import pytest
 
 class ProviderInfo:
     """Provider information for parametrizing tests."""
-    
+
     def __init__(self, name: str):
         self.name = name
         self.mark = pytest.mark.integration
