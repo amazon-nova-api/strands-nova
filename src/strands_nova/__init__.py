@@ -5,10 +5,24 @@ API for Amazon's Nova family of models) and the Strands Agents SDK, enabling
 access to Nova Pro, Nova Premier, reasoning models, and image generation capabilities.
 """
 
-from .nova import NovaModel, NovaSystemTool
+from .nova import (
+    NovaModel,
+    NovaSystemTool,
+    NovaAPIException,
+    NovaValidationException,
+    NovaModelNotFoundException,
+    NovaModelException,
+)
 
 __version__ = "0.1.0"
-__all__ = ["NovaModel", "NovaSystemTool"]
+__all__ = [
+    "NovaModel",
+    "NovaSystemTool",
+    "NovaAPIException",
+    "NovaValidationException",
+    "NovaModelNotFoundException",
+    "NovaModelException",
+]
 
 
 # Convenience exports for common use cases

@@ -4,7 +4,7 @@ import base64
 
 import pytest
 
-from strands_nova.nova import NovaModel
+from strands_nova.nova import NovaModel, NovaMessageFormatter
 
 
 class TestContentBlockFormatting:
@@ -14,7 +14,7 @@ class TestContentBlockFormatting:
         """Test formatting text content block."""
         content = {"text": "Hello, world!"}
 
-        result = NovaModel.format_request_message_content(content)
+        result = NovaMessageFormatter.format_content_block(content)
 
         assert result == {"text": "Hello, world!", "type": "text"}
 
@@ -23,7 +23,7 @@ class TestContentBlockFormatting:
         image_bytes = b"fake_image_data"
         content = {"image": {"format": "png", "source": {"bytes": image_bytes}}}
 
-        result = NovaModel.format_request_message_content(content)
+        result = NovaMessageFormatter.format_content_block(content)
 
         expected_b64 = base64.b64encode(image_bytes).decode("utf-8")
         assert result["type"] == "image_url"
@@ -40,7 +40,7 @@ class TestContentBlockFormatting:
             }
         }
 
-        result = NovaModel.format_request_message_content(content)
+        result = NovaMessageFormatter.format_content_block(content)
 
         expected_b64 = base64.b64encode(doc_bytes).decode("utf-8")
         assert result["type"] == "file"
@@ -54,7 +54,7 @@ class TestContentBlockFormatting:
         audio_bytes = b"fake_audio_data"
         content = {"audio": {"format": "mp3", "source": {"bytes": audio_bytes}}}
 
-        result = NovaModel.format_request_message_content(content)
+        result = NovaMessageFormatter.format_content_block(content)
 
         expected_b64 = base64.b64encode(audio_bytes).decode("utf-8")
         assert result["type"] == "input_audio"
@@ -66,7 +66,7 @@ class TestContentBlockFormatting:
         content = {"unknown_type": "data"}
 
         with pytest.raises(TypeError, match="unsupported type"):
-            NovaModel.format_request_message_content(content)
+            NovaMessageFormatter.format_content_block(content)
 
 
 class TestToolFormatting:
@@ -80,7 +80,7 @@ class TestToolFormatting:
             "input": {"city": "San Francisco"},
         }
 
-        result = NovaModel.format_request_message_tool_call(tool_use)
+        result = NovaMessageFormatter.format_tool_call(tool_use)
 
         assert result["type"] == "function"
         assert result["id"] == "tool_123"
@@ -94,7 +94,7 @@ class TestToolFormatting:
             "content": [{"text": "Weather is sunny"}],
         }
 
-        result = NovaModel.format_request_tool_message(tool_result)
+        result = NovaMessageFormatter.format_tool_result(tool_result)
 
         assert result["role"] == "tool"
         assert result["tool_call_id"] == "tool_123"
@@ -108,7 +108,7 @@ class TestToolFormatting:
             "content": [{"json": {"temperature": 72, "conditions": "sunny"}}],
         }
 
-        result = NovaModel.format_request_tool_message(tool_result)
+        result = NovaMessageFormatter.format_tool_result(tool_result)
 
         assert result["role"] == "tool"
         assert result["tool_call_id"] == "tool_456"
@@ -122,21 +122,22 @@ class TestToolChoiceFormatting:
 
     def test_format_tool_choice_auto(self):
         """Test formatting auto tool choice."""
-        result = NovaModel._format_request_tool_choice({"auto": {}})
+        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        result = model._format_request_tool_choice({"auto": {}})
 
         assert result == {"tool_choice": "auto"}
 
     def test_format_tool_choice_any(self):
         """Test formatting any/required tool choice."""
-        result = NovaModel._format_request_tool_choice({"any": {}})
+        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        result = model._format_request_tool_choice({"any": {}})
 
         assert result == {"tool_choice": "required"}
 
     def test_format_tool_choice_specific_tool(self):
         """Test formatting specific tool choice."""
-        result = NovaModel._format_request_tool_choice(
-            {"tool": {"name": "get_weather"}}
-        )
+        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        result = model._format_request_tool_choice({"tool": {"name": "get_weather"}})
 
         assert result == {
             "tool_choice": {"type": "function", "function": {"name": "get_weather"}}
@@ -144,13 +145,15 @@ class TestToolChoiceFormatting:
 
     def test_format_tool_choice_none(self):
         """Test formatting None tool choice."""
-        result = NovaModel._format_request_tool_choice(None)
+        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        result = model._format_request_tool_choice(None)
 
         assert result == {}
 
     def test_format_tool_choice_unknown(self):
         """Test formatting unknown tool choice defaults to auto."""
-        result = NovaModel._format_request_tool_choice({"unknown": {}})
+        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        result = model._format_request_tool_choice({"unknown": {}})
 
         assert result == {"tool_choice": "auto"}
 
@@ -160,7 +163,7 @@ class TestSystemMessageFormatting:
 
     def test_format_system_messages_with_prompt(self):
         """Test formatting system messages from prompt string."""
-        result = NovaModel._format_system_messages(
+        result = NovaMessageFormatter.format_system_messages(
             system_prompt="You are a helpful assistant"
         )
 
@@ -175,7 +178,9 @@ class TestSystemMessageFormatting:
             {"text": "Always be polite"},
         ]
 
-        result = NovaModel._format_system_messages(system_prompt_content=system_content)
+        result = NovaMessageFormatter.format_system_messages(
+            system_prompt_content=system_content
+        )
 
         assert len(result) == 2
         assert result[0]["content"] == "You are a helpful assistant"
@@ -183,7 +188,7 @@ class TestSystemMessageFormatting:
 
     def test_format_system_messages_empty(self):
         """Test formatting with no system messages."""
-        result = NovaModel._format_system_messages()
+        result = NovaMessageFormatter.format_system_messages()
 
         assert result == []
 
@@ -194,7 +199,9 @@ class TestSystemMessageFormatting:
             {"image": {"format": "png", "source": {"bytes": b"data"}}},
         ]
 
-        result = NovaModel._format_system_messages(system_prompt_content=system_content)
+        result = NovaMessageFormatter.format_system_messages(
+            system_prompt_content=system_content
+        )
 
         assert len(result) == 1
         assert result[0]["content"] == "Hello"
@@ -210,7 +217,7 @@ class TestRegularMessageFormatting:
             {"role": "assistant", "content": [{"text": "Hi there"}]},
         ]
 
-        result = NovaModel._format_regular_messages(messages)
+        result = NovaMessageFormatter.format_regular_messages(messages)
 
         assert len(result) == 2
         assert result[0]["role"] == "user"
@@ -236,7 +243,7 @@ class TestRegularMessageFormatting:
             }
         ]
 
-        result = NovaModel._format_regular_messages(messages)
+        result = NovaMessageFormatter.format_regular_messages(messages)
 
         assert len(result) == 1
         assert "tool_calls" in result[0]
@@ -259,7 +266,7 @@ class TestRegularMessageFormatting:
             }
         ]
 
-        result = NovaModel._format_regular_messages(messages)
+        result = NovaMessageFormatter.format_regular_messages(messages)
 
         # Tool results should be formatted as separate tool messages
         assert len(result) == 2
@@ -279,7 +286,7 @@ class TestRegularMessageFormatting:
             }
         ]
 
-        result = NovaModel._format_regular_messages(messages)
+        result = NovaMessageFormatter.format_regular_messages(messages)
 
         # reasoningContent should be filtered
         assert len(result[0]["content"]) == 1
@@ -294,7 +301,14 @@ class TestFullRequestFormatting:
         messages = [{"role": "user", "content": [{"text": "Hello"}]}]
         system_prompt = "You are helpful"
 
-        result = NovaModel.format_request_messages(messages, system_prompt)
+        # Use the formatter to get system messages
+        system_messages = NovaMessageFormatter.format_system_messages(
+            system_prompt=system_prompt
+        )
+        # Use the formatter to get regular messages
+        regular_messages = NovaMessageFormatter.format_regular_messages(messages)
+
+        result = system_messages + regular_messages
 
         assert len(result) == 2
         assert result[0]["role"] == "system"

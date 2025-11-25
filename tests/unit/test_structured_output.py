@@ -166,14 +166,48 @@ class TestStructuredOutputFormatting:
 
     @pytest.mark.asyncio
     async def test_structured_output_multiple_choices(self):
-        """Test structured output with multiple choices (should raise error)."""
+        """Test structured output with multiple choices (should use first and warn)."""
         model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
         messages = [{"role": "user", "content": [{"text": "Get user info"}]}]
 
         mock_response_data = {
             "choices": [
-                {"message": {}, "finish_reason": "tool_calls"},
-                {"message": {}, "finish_reason": "tool_calls"},
+                {
+                    "message": {
+                        "tool_calls": [
+                            {
+                                "function": {
+                                    "arguments": json.dumps(
+                                        {
+                                            "name": "John Doe",
+                                            "age": 30,
+                                            "email": "john@example.com",
+                                        }
+                                    )
+                                }
+                            }
+                        ]
+                    },
+                    "finish_reason": "tool_calls",
+                },
+                {
+                    "message": {
+                        "tool_calls": [
+                            {
+                                "function": {
+                                    "arguments": json.dumps(
+                                        {
+                                            "name": "Jane Doe",
+                                            "age": 25,
+                                            "email": "jane@example.com",
+                                        }
+                                    )
+                                }
+                            }
+                        ]
+                    },
+                    "finish_reason": "tool_calls",
+                },
             ]
         }
 
@@ -196,12 +230,20 @@ class TestStructuredOutputFormatting:
             mock_client_instance.__aenter__ = AsyncMock(
                 return_value=mock_client_instance
             )
-            mock_client_instance.__aexit__ = AsyncMock(return_value=False)
+            mock_client_instance.__aexit__ = AsyncMock()
             mock_client.return_value = mock_client_instance
 
-            with pytest.raises(ValueError, match="Multiple choices found"):
-                async for _ in model.structured_output(SampleOutputModel, messages):
-                    pass
+            results = []
+            async for result in model.structured_output(SampleOutputModel, messages):
+                results.append(result)
+
+            # Should use first choice and succeed
+            assert len(results) == 1
+            assert "output" in results[0]
+            output = results[0]["output"]
+            # Should be the first choice (John Doe)
+            assert output.name == "John Doe"
+            assert output.age == 30
 
     @pytest.mark.asyncio
     async def test_structured_output_wrong_finish_reason(self):
@@ -235,7 +277,7 @@ class TestStructuredOutputFormatting:
             mock_client_instance.__aexit__ = AsyncMock(return_value=False)
             mock_client.return_value = mock_client_instance
 
-            with pytest.raises(ValueError, match="No tool_calls found in response"):
+            with pytest.raises(ValueError, match="Expected tool_calls finish reason"):
                 async for _ in model.structured_output(SampleOutputModel, messages):
                     pass
 

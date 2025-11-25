@@ -133,10 +133,18 @@ response = await agent.run("Tell me about quantum computing")
 
 ### Error Handling
 
+The package provides custom exceptions for Nova-specific errors, along with support for Strands SDK exceptions:
+
 ```python
 from strands.types.exceptions import (
     ContextWindowOverflowException,
     ModelThrottledException
+)
+from strands_nova import (
+    NovaAPIException,           # Base exception for all Nova API errors
+    NovaValidationException,    # HTTP 400 validation errors
+    NovaModelNotFoundException, # HTTP 404 model not found
+    NovaModelException          # HTTP 500 internal model errors
 )
 
 try:
@@ -149,9 +157,31 @@ except ContextWindowOverflowException as e:
 except ModelThrottledException as e:
     print(f"Rate limited: {e}")
     # Implement retry with backoff
+except NovaValidationException as e:
+    print(f"Validation error: {e}")
+    # Check request parameters
+except NovaModelNotFoundException as e:
+    print(f"Model not found: {e}")
+    # Verify model_id is correct
+except NovaModelException as e:
+    print(f"Model error: {e}")
+    # Nova API internal error
+except NovaAPIException as e:
+    print(f"Nova API error: {e}")
+    # Catch-all for other Nova errors
 except Exception as e:
-    print(f"API error: {e}")
+    print(f"Unexpected error: {e}")
 ```
+
+**Custom Nova Exceptions:**
+- `NovaAPIException`: Base exception for all Nova API errors
+- `NovaValidationException`: Raised for HTTP 400 validation errors (malformed requests, invalid parameters)
+- `NovaModelNotFoundException`: Raised for HTTP 404 errors (model not found or inaccessible)
+- `NovaModelException`: Raised for HTTP 500 errors (internal model service errors)
+
+**Strands SDK Exceptions:**
+- `ContextWindowOverflowException`: Raised when input exceeds the model's context window
+- `ModelThrottledException`: Raised when requests are rate-limited (HTTP 429)
 
 ## Getting Your API Key
 
