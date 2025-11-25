@@ -57,19 +57,14 @@ asyncio.run(main())
 - ✅ **Direct Nova API Integration**: Uses httpx for direct API calls (no OpenAI SDK dependency)
 - ✅ **Streaming Support**: Full support for streaming responses with Server-Sent Events (SSE)
 - ✅ **Tool Calling**: Complete support for function/tool calling
+- ✅ **System Tools**: Support for Nova system tools (grounding, code interpreter)
+- ✅ **Structured Output**: Type-safe structured output using Pydantic models
 - ✅ **Multi-modal Inputs**: Support for text, images, documents, and audio
 - ✅ **Error Handling**: Proper handling of Nova API errors including throttling and context overflow
 - ✅ **Reasoning Content**: Support for models with reasoning capabilities
 - ✅ **Strands Compatible**: Fully compatible with the Strands Agents SDK
 
 ## Supported Models
-
-- `nova-pro-v1` - High-performance model
-- `nova-lite-v2` - Lightweight, fast model
-- `nova-micro-v1` - Ultra-lightweight model
-- `nova-premier-v1` - Premium tier model
-- `nova-2o-omni` - Omni-modal model
-- `nova-deep-research-v1` - Research-focused model
 
 To see all available models for your account:
 
@@ -96,8 +91,8 @@ model = NovaModel(
         "temperature": 0.7,              # Sampling temperature (0.0-1.0)
         "top_p": 0.9,                    # Nucleus sampling (0.0-1.0)
         "reasoning_effort": "medium",    # For reasoning models: "low", "medium", "high"
+        "system_tools": ["nova_grounding", "nova_code_interpreter"] # Available system tools from Nova API
         "metadata": {},                  # Additional metadata
-        "web_search_options": {}         # Web search config (in review)
     }
 )
 ```
@@ -108,8 +103,8 @@ model = NovaModel(
 - `temperature` (float): Controls randomness (0.0 = deterministic, 1.0 = maximum randomness)
 - `top_p` (float): Nucleus sampling threshold
 - `reasoning_effort` (str): For reasoning models - "low", "medium", or "high"
+- `system_tools` (list): Available system tools from the Nova API - currently nova_grounding and nova_code_interpreter
 - `metadata` (dict): Additional request metadata
-- `web_search_options` (dict): Web search configuration (currently in review)
 - Any additional parameters will be passed through to the API for future extensibility
 
 ### Using with Strands Agents
@@ -136,72 +131,6 @@ agent = Agent(
 response = await agent.run("Tell me about quantum computing")
 ```
 
-## Advanced Features
-
-### Tool Calling
-
-```python
-tool_specs = [
-    {
-        "name": "get_weather",
-        "description": "Get weather for a location",
-        "inputSchema": {
-            "json": {
-                "type": "object",
-                "properties": {
-                    "location": {"type": "string"}
-                },
-                "required": ["location"]
-            }
-        }
-    }
-]
-
-messages = [
-    {
-        "role": "user",
-        "content": [{"text": "What's the weather in Paris?"}]
-    }
-]
-
-async for chunk in model.stream(
-    messages=messages,
-    tool_specs=tool_specs,
-    tool_choice={"auto": {}}
-):
-    # Process chunks
-    pass
-```
-
-### Multi-modal Inputs
-
-```python
-import base64
-
-# Image input
-with open("image.png", "rb") as f:
-    image_bytes = f.read()
-
-messages = [
-    {
-        "role": "user",
-        "content": [
-            {"text": "What's in this image?"},
-            {
-                "image": {
-                    "format": "png",
-                    "source": {"bytes": image_bytes}
-                }
-            }
-        ]
-    }
-]
-
-async for chunk in model.stream(messages=messages):
-    # Process response
-    pass
-```
-
 ### Error Handling
 
 ```python
@@ -224,64 +153,6 @@ except Exception as e:
     print(f"API error: {e}")
 ```
 
-## API Reference
-
-### NovaModel
-
-#### Constructor
-
-```python
-NovaModel(
-    api_key: str,
-    model_id: str,
-    base_url: str = "https://api.nova.amazon.com/v1",
-    timeout: float = 300.0,
-    params: Optional[dict[str, Any]] = None,
-    **extra_config: Any
-)
-```
-
-**Parameters:**
-- `api_key` (str, required): Nova API key for authentication
-- `model_id` (str, required): Model ID (e.g., "nova-pro-v1", "nova-lite-v2")
-- `base_url` (str, optional): Base URL for Nova API (default: "https://api.nova.amazon.com/v1")
-- `timeout` (float, optional): Request timeout in seconds (default: 300.0)
-- `params` (dict, optional): Model parameters (see NovaModelParams for typed options)
-- `**extra_config` (Any): Additional configuration for future extensibility
-
-#### Methods
-
-##### stream()
-
-Stream conversation with the Nova model.
-
-```python
-async def stream(
-    messages: Messages,
-    tool_specs: Optional[list[ToolSpec]] = None,
-    system_prompt: Optional[str] = None,
-    *,
-    tool_choice: ToolChoice | None = None,
-    **kwargs
-) -> AsyncGenerator[StreamEvent, None]
-```
-
-##### update_config()
-
-Update the model configuration.
-
-```python
-def update_config(**model_config: NovaConfig) -> None
-```
-
-##### get_config()
-
-Get the current model configuration.
-
-```python
-def get_config() -> NovaConfig
-```
-
 ## Getting Your API Key
 
 1. Visit [https://nova.amazon.com/dev-apis](https://nova.amazon.com/dev-apis)
@@ -297,29 +168,14 @@ The `NovaModelParams` TypedDict provides type hints for all supported parameters
 
 ```python
 class NovaModelParams(TypedDict, total=False):
-    max_tokens: int                      # Deprecated, use max_completion_tokens
-    max_completion_tokens: int           # Maximum tokens to generate
-    temperature: float                   # Sampling temperature (0.0-1.0)
-    top_p: float                        # Nucleus sampling (0.0-1.0)
-    reasoning_effort: str               # "low", "medium", or "high"
-    metadata: dict[str, Any]            # Additional metadata
-    web_search_options: dict[str, Any]  # Web search config (in review)
+    max_tokens: int                          # Deprecated, use max_completion_tokens
+    max_completion_tokens: int               # Maximum tokens to generate
+    temperature: float                       # Sampling temperature (0.0-1.0)
+    top_p: float                            # Nucleus sampling (0.0-1.0)
+    reasoning_effort: str                   # "low", "medium", or "high"
+    metadata: dict[str, Any]                # Additional metadata
+    system_tools: list[Union[NovaSystemTool, str]]  # Built-in system tools
 ```
-
-**Note:** The configuration is extensible - any additional parameters not explicitly typed will be passed through to the Nova API, allowing support for future API additions without package updates.
-
-### Auto-set Parameters
-
-These parameters are automatically configured:
-- `stream`: Always set to `true` for streaming support
-- `stream_options`: Automatically includes `{"include_usage": True}` for token usage tracking
-
-## Error Codes
-
-- `400` - ValidationException (including context length errors)
-- `404` - ModelNotFoundException
-- `429` - ThrottlingException (rate limits)
-- `500` - ModelException
 
 ## Development
 
@@ -332,7 +188,6 @@ pytest
 
 # Run linting
 ruff check .
-black --check .
 
 # Type checking
 mypy src/strands_nova
@@ -340,7 +195,7 @@ mypy src/strands_nova
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT License
 
 ## Contributing
 
@@ -348,9 +203,9 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Support
 
-For issues with the Nova API itself, contact: nova-api-support@amazon.com
+For issues with the Nova API itself, contact: <email>
 For issues with this package, please open a GitHub issue.
 
 ## Acknowledgments
 
-This package is built on top of the [Strands Agents SDK](https://github.com/strands-agents/sdk-python).
+This package is built for [Strands Agents SDK](https://github.com/strands-agents/sdk-python).
