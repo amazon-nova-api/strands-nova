@@ -7,13 +7,13 @@ This package provides integration between Amazon's Nova API (an OpenAI-compatibl
 ## Installation
 
 ```bash
-pip install strands-nova
+pip install amazon-strands-nova
 ```
 
 Or with development dependencies:
 
 ```bash
-pip install strands-nova[dev]
+pip install amazon-strands-nova[dev]
 ```
 
 ## Quick Start
@@ -81,7 +81,7 @@ curl -L 'https://api.nova.amazon.com/v1/models' \
 from strands_nova import NovaAPIModel
 
 model = NovaAPIModel(
-    api_key="your-api-key",              # Required: Nova API key
+    api_key=os.getenv("NOVA_API_KEY"),   # Required: Nova API key
     model_id="nova-pro-v1",              # Required: Model ID
     base_url="https://api.nova.amazon.com/v1",  # Optional, default shown
     timeout=300.0,                       # Optional, request timeout in seconds
@@ -114,7 +114,8 @@ from strands import Agent
 from strands_nova import NovaAPIModel
 
 model = NovaAPIModel(
-    api_key="your-api-key",
+    api_key=os.getenv("NOVA_API_KEY"),   # Required: Nova API key
+,
     model_id="nova-pro-v1",  # Required
     params={
         "temperature": 0.7,
