@@ -1,4 +1,4 @@
-"""Unit tests for NovaModel structured output functionality."""
+"""Unit tests for NovaAPIModel structured output functionality."""
 
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -11,7 +11,7 @@ from strands.types.exceptions import (
     ContextWindowOverflowException,
     ModelThrottledException,
 )
-from strands_nova.nova import NovaModel
+from amazon_nova.nova import NovaAPIModel
 
 
 class SampleOutputModel(BaseModel):
@@ -34,7 +34,7 @@ class TestStructuredOutputFormatting:
 
     def test_structured_output_formats_request_correctly(self):
         """Test that structured output formats request with tool calling."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         messages = [{"role": "user", "content": [{"text": "Get user info"}]}]
 
         # Mock convert_pydantic_to_tool_spec
@@ -70,7 +70,7 @@ class TestStructuredOutputFormatting:
     @pytest.mark.asyncio
     async def test_structured_output_success(self):
         """Test successful structured output parsing."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         messages = [{"role": "user", "content": [{"text": "Get user info"}]}]
 
         mock_response_data = {
@@ -133,7 +133,7 @@ class TestStructuredOutputFormatting:
     @pytest.mark.asyncio
     async def test_structured_output_no_choices(self):
         """Test structured output with no choices in response."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         messages = [{"role": "user", "content": [{"text": "Get user info"}]}]
 
         mock_response_data = {"choices": []}
@@ -167,7 +167,7 @@ class TestStructuredOutputFormatting:
     @pytest.mark.asyncio
     async def test_structured_output_multiple_choices(self):
         """Test structured output with multiple choices (should use first and warn)."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         messages = [{"role": "user", "content": [{"text": "Get user info"}]}]
 
         mock_response_data = {
@@ -248,7 +248,7 @@ class TestStructuredOutputFormatting:
     @pytest.mark.asyncio
     async def test_structured_output_wrong_finish_reason(self):
         """Test structured output with wrong finish reason."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         messages = [{"role": "user", "content": [{"text": "Get user info"}]}]
 
         mock_response_data = {
@@ -284,7 +284,7 @@ class TestStructuredOutputFormatting:
     @pytest.mark.asyncio
     async def test_structured_output_no_tool_calls_in_message(self):
         """Test structured output with no tool calls in message."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         messages = [{"role": "user", "content": [{"text": "Get user info"}]}]
 
         mock_response_data = {
@@ -322,7 +322,7 @@ class TestStructuredOutputFormatting:
     @pytest.mark.asyncio
     async def test_structured_output_invalid_json(self):
         """Test structured output with invalid JSON in tool call."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         messages = [{"role": "user", "content": [{"text": "Get user info"}]}]
 
         mock_response_data = {
@@ -365,7 +365,7 @@ class TestStructuredOutputFormatting:
     @pytest.mark.asyncio
     async def test_structured_output_validation_error(self):
         """Test structured output with pydantic validation error."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         messages = [{"role": "user", "content": [{"text": "Get user info"}]}]
 
         # Missing required field 'age'
@@ -420,7 +420,7 @@ class TestStructuredOutputFormatting:
     @pytest.mark.asyncio
     async def test_structured_output_with_system_prompt(self):
         """Test structured output with system prompt."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         messages = [{"role": "user", "content": [{"text": "Get user info"}]}]
         system_prompt = "You are a helpful assistant"
 
@@ -482,7 +482,7 @@ class TestStructuredOutputFormatting:
     @pytest.mark.asyncio
     async def test_structured_output_timeout_error(self):
         """Test structured output with timeout error."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         messages = [{"role": "user", "content": [{"text": "Get user info"}]}]
 
         with (
@@ -512,7 +512,7 @@ class TestStructuredOutputFormatting:
     @pytest.mark.asyncio
     async def test_structured_output_request_error(self):
         """Test structured output with request error."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         messages = [{"role": "user", "content": [{"text": "Get user info"}]}]
 
         with (
@@ -542,7 +542,7 @@ class TestStructuredOutputFormatting:
     @pytest.mark.asyncio
     async def test_structured_output_api_error_context_window(self):
         """Test structured output with context window overflow error."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         messages = [{"role": "user", "content": [{"text": "Get user info"}]}]
 
         with (
@@ -577,7 +577,7 @@ class TestStructuredOutputFormatting:
     @pytest.mark.asyncio
     async def test_structured_output_api_error_throttled(self):
         """Test structured output with throttling error."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         messages = [{"role": "user", "content": [{"text": "Get user info"}]}]
 
         with (

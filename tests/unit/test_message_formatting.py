@@ -1,10 +1,10 @@
-"""Unit tests for NovaModel message formatting."""
+"""Unit tests for NovaAPIModel message formatting."""
 
 import base64
 
 import pytest
 
-from strands_nova.nova import NovaModel, NovaMessageFormatter
+from amazon_nova.nova import NovaAPIModel, NovaMessageFormatter
 
 
 class TestContentBlockFormatting:
@@ -122,21 +122,21 @@ class TestToolChoiceFormatting:
 
     def test_format_tool_choice_auto(self):
         """Test formatting auto tool choice."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         result = model._format_request_tool_choice({"auto": {}})
 
         assert result == {"tool_choice": "auto"}
 
     def test_format_tool_choice_any(self):
         """Test formatting any/required tool choice."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         result = model._format_request_tool_choice({"any": {}})
 
         assert result == {"tool_choice": "required"}
 
     def test_format_tool_choice_specific_tool(self):
         """Test formatting specific tool choice."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         result = model._format_request_tool_choice({"tool": {"name": "get_weather"}})
 
         assert result == {
@@ -145,14 +145,14 @@ class TestToolChoiceFormatting:
 
     def test_format_tool_choice_none(self):
         """Test formatting None tool choice."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         result = model._format_request_tool_choice(None)
 
         assert result == {}
 
     def test_format_tool_choice_unknown(self):
         """Test formatting unknown tool choice defaults to auto."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         result = model._format_request_tool_choice({"unknown": {}})
 
         assert result == {"tool_choice": "auto"}
@@ -316,7 +316,7 @@ class TestFullRequestFormatting:
 
     def test_format_request_complete(self):
         """Test formatting complete request."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         messages = [{"role": "user", "content": [{"text": "Hello"}]}]
         tool_specs = [
             {
@@ -337,7 +337,7 @@ class TestFullRequestFormatting:
 
     def test_format_request_with_tool_choice(self):
         """Test formatting request with tool choice."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         messages = [{"role": "user", "content": [{"text": "Hello"}]}]
         tool_choice = {"any": {}}
 
@@ -348,7 +348,7 @@ class TestFullRequestFormatting:
     def test_format_request_with_params(self):
         """Test formatting request with model parameters."""
         params = {"temperature": 0.7, "max_tokens": 1000}
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key", params=params)
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key", params=params)
         messages = [{"role": "user", "content": [{"text": "Hello"}]}]
 
         result = model.format_request(messages)
@@ -358,7 +358,7 @@ class TestFullRequestFormatting:
 
     def test_format_request_filters_empty_messages(self):
         """Test that empty messages are filtered out."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         messages = [
             {"role": "user", "content": [{"text": "Hello"}]},
             {"role": "assistant", "content": []},  # Empty content

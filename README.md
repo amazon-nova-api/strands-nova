@@ -21,11 +21,11 @@ pip install strands-nova[dev]
 ```python
 import asyncio
 import os
-from strands_nova import NovaModel
+from strands_nova import NovaAPIModel
 
 async def main():
     # Initialize the Nova model
-    model = NovaModel(
+    model = NovaAPIModel(
         api_key=os.getenv("NOVA_API_KEY"),
         model_id="nova-lite-v2",  # Required parameter
         params={
@@ -78,9 +78,9 @@ curl -L 'https://api.nova.amazon.com/v1/models' \
 ### Basic Configuration
 
 ```python
-from strands_nova import NovaModel
+from strands_nova import NovaAPIModel
 
-model = NovaModel(
+model = NovaAPIModel(
     api_key="your-api-key",              # Required: Nova API key
     model_id="nova-pro-v1",              # Required: Model ID
     base_url="https://api.nova.amazon.com/v1",  # Optional, default shown
@@ -111,9 +111,9 @@ model = NovaModel(
 
 ```python
 from strands import Agent
-from strands_nova import NovaModel
+from strands_nova import NovaAPIModel
 
-model = NovaModel(
+model = NovaAPIModel(
     api_key="your-api-key",
     model_id="nova-pro-v1",  # Required
     params={
@@ -192,12 +192,12 @@ except Exception as e:
 
 ## Configuration Types
 
-### NovaModelParams
+### NovaAPIModelParams
 
-The `NovaModelParams` TypedDict provides type hints for all supported parameters:
+The `NovaAPIModelParams` TypedDict provides type hints for all supported parameters:
 
 ```python
-class NovaModelParams(TypedDict, total=False):
+class NovaAPIModelParams(TypedDict, total=False):
     max_tokens: int                          # Deprecated, use max_completion_tokens
     max_completion_tokens: int               # Maximum tokens to generate
     temperature: float                       # Sampling temperature (0.0-1.0)

@@ -5,7 +5,7 @@ import asyncio
 from dotenv import load_dotenv
 from strands import Agent
 
-from strands_nova import NovaModel
+from amazon_nova import NovaAPIModel
 
 
 def yellow_img():
@@ -18,7 +18,7 @@ async def basic_streaming():
     """Demonstrate basic streaming with Strands Agent."""
 
     # Initialize model
-    model = NovaModel(
+    model = NovaAPIModel(
         model_id="nova-pro-v1",
         params={
             "temperature": 0.3,
@@ -49,7 +49,7 @@ async def image_streaming():
     """Demonstrate basic streaming with Strands Agent."""
 
     # Initialize model
-    model = NovaModel(
+    model = NovaAPIModel(
         model_id="nova-pro-v1",
         params={
             "temperature": 0.3,

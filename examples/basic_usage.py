@@ -4,7 +4,7 @@
 from dotenv import load_dotenv
 from strands import Agent
 
-from strands_nova import NovaModel
+from amazon_nova import NovaAPIModel
 
 
 def yellow_img():
@@ -18,7 +18,7 @@ def main():
     # Load environment variables
     load_dotenv()
     try:
-        model = NovaModel(
+        model = NovaAPIModel(
             model_id="nova-pro-v1",
             params={
                 "temperature": 0.3,

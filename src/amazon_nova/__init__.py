@@ -6,7 +6,7 @@ access to Nova Pro, Nova Premier, reasoning models, and image generation capabil
 """
 
 from .nova import (
-    NovaModel,
+    NovaAPIModel,
     NovaSystemTool,
     NovaAPIException,
     NovaValidationException,
@@ -16,7 +16,7 @@ from .nova import (
 
 __version__ = "0.1.0"
 __all__ = [
-    "NovaModel",
+    "NovaAPIModel",
     "NovaSystemTool",
     "NovaAPIException",
     "NovaValidationException",
@@ -26,7 +26,7 @@ __all__ = [
 
 
 # Convenience exports for common use cases
-def create_nova_model(api_key: str, **kwargs) -> NovaModel:
+def create_nova_model(api_key: str, **kwargs) -> NovaAPIModel:
     """Create a Nova model instance with default settings.
 
     Args:
@@ -34,6 +34,6 @@ def create_nova_model(api_key: str, **kwargs) -> NovaModel:
         **kwargs: Additional model parameters (model_id, params, base_url, timeout)
 
     Returns:
-        Configured NovaModel instance
+        Configured NovaAPIModel instance
     """
-    return NovaModel(api_key=api_key, **kwargs)
+    return NovaAPIModel(api_key=api_key, **kwargs)

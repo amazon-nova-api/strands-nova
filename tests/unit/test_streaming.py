@@ -1,4 +1,4 @@
-"""Unit tests for NovaModel streaming functionality."""
+"""Unit tests for NovaAPIModel streaming functionality."""
 
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -10,7 +10,7 @@ from strands.types.exceptions import (
     ContextWindowOverflowException,
     ModelThrottledException,
 )
-from strands_nova.nova import NovaModel
+from amazon_nova.nova import NovaAPIModel
 
 
 class TestChunkFormatting:
@@ -18,7 +18,7 @@ class TestChunkFormatting:
 
     def test_format_chunk_message_start(self):
         """Test formatting message_start chunk."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         event = {"chunk_type": "message_start"}
 
         result = model.format_chunk(event)
@@ -27,7 +27,7 @@ class TestChunkFormatting:
 
     def test_format_chunk_content_start_text(self):
         """Test formatting content_start chunk for text."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         event = {"chunk_type": "content_start", "data_type": "text"}
 
         result = model.format_chunk(event)
@@ -36,7 +36,7 @@ class TestChunkFormatting:
 
     def test_format_chunk_content_start_tool(self):
         """Test formatting content_start chunk for tool."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         event = {
             "chunk_type": "content_start",
             "data_type": "tool",
@@ -53,7 +53,7 @@ class TestChunkFormatting:
 
     def test_format_chunk_content_delta_text(self):
         """Test formatting content_delta chunk for text."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         event = {"chunk_type": "content_delta", "data_type": "text", "data": "Hello"}
 
         result = model.format_chunk(event)
@@ -62,7 +62,7 @@ class TestChunkFormatting:
 
     def test_format_chunk_content_delta_tool(self):
         """Test formatting content_delta chunk for tool."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         event = {
             "chunk_type": "content_delta",
             "data_type": "tool",
@@ -77,7 +77,7 @@ class TestChunkFormatting:
 
     def test_format_chunk_content_delta_reasoning(self):
         """Test formatting content_delta chunk for reasoning content."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         event = {
             "chunk_type": "content_delta",
             "data_type": "reasoning_content",
@@ -94,7 +94,7 @@ class TestChunkFormatting:
 
     def test_format_chunk_content_stop(self):
         """Test formatting content_stop chunk."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         event = {"chunk_type": "content_stop"}
 
         result = model.format_chunk(event)
@@ -103,7 +103,7 @@ class TestChunkFormatting:
 
     def test_format_chunk_message_stop_tool_calls(self):
         """Test formatting message_stop chunk with tool_calls finish reason."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         event = {"chunk_type": "message_stop", "data": "tool_calls"}
 
         result = model.format_chunk(event)
@@ -112,7 +112,7 @@ class TestChunkFormatting:
 
     def test_format_chunk_message_stop_length(self):
         """Test formatting message_stop chunk with length finish reason."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         event = {"chunk_type": "message_stop", "data": "length"}
 
         result = model.format_chunk(event)
@@ -121,7 +121,7 @@ class TestChunkFormatting:
 
     def test_format_chunk_message_stop_default(self):
         """Test formatting message_stop chunk with default finish reason."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         event = {"chunk_type": "message_stop", "data": "stop"}
 
         result = model.format_chunk(event)
@@ -130,7 +130,7 @@ class TestChunkFormatting:
 
     def test_format_chunk_metadata(self):
         """Test formatting metadata chunk."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         event = {
             "chunk_type": "metadata",
             "data": {
@@ -148,7 +148,7 @@ class TestChunkFormatting:
 
     def test_format_chunk_unknown_type_raises_error(self):
         """Test formatting unknown chunk type raises RuntimeError."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         event = {"chunk_type": "unknown_type"}
 
         with pytest.raises(RuntimeError, match="unknown type"):
@@ -160,7 +160,7 @@ class TestStreamSwitchContent:
 
     def test_stream_switch_content_same_type(self):
         """Test switching to same content type."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
 
         chunks, data_type = model._stream_switch_content("text", "text")
 
@@ -169,7 +169,7 @@ class TestStreamSwitchContent:
 
     def test_stream_switch_content_different_type(self):
         """Test switching to different content type."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
 
         chunks, data_type = model._stream_switch_content("text", "tool")
 
@@ -180,7 +180,7 @@ class TestStreamSwitchContent:
 
     def test_stream_switch_content_from_none(self):
         """Test switching from None to content type."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
 
         chunks, data_type = model._stream_switch_content("text", None)
 
@@ -195,7 +195,7 @@ class TestSSEStreamParsing:
     @pytest.mark.asyncio
     async def test_parse_sse_stream_valid_data(self):
         """Test parsing valid SSE stream."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
 
         # Mock response with SSE data
         async def mock_aiter_lines():
@@ -222,7 +222,7 @@ class TestSSEStreamParsing:
     @pytest.mark.asyncio
     async def test_parse_sse_stream_invalid_json(self):
         """Test parsing SSE stream with invalid JSON."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
 
         async def mock_aiter_lines():
             lines = [
@@ -246,7 +246,7 @@ class TestSSEStreamParsing:
     @pytest.mark.asyncio
     async def test_parse_sse_stream_empty_lines(self):
         """Test parsing SSE stream with empty lines."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
 
         async def mock_aiter_lines():
             lines = ["", "data: " + json.dumps({"event": "test"}), "", "data: [DONE]"]
@@ -268,7 +268,7 @@ class TestErrorHandling:
 
     def test_handle_api_error_400_context_window(self):
         """Test handling 400 error for context window overflow."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
 
         mock_response = MagicMock()
         mock_response.status_code = 400
@@ -281,7 +281,7 @@ class TestErrorHandling:
 
     def test_handle_api_error_400_validation(self):
         """Test handling 400 validation error."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
 
         mock_response = MagicMock()
         mock_response.status_code = 400
@@ -292,7 +292,7 @@ class TestErrorHandling:
 
     def test_handle_api_error_404(self):
         """Test handling 404 model not found error."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
 
         mock_response = MagicMock()
         mock_response.status_code = 404
@@ -303,7 +303,7 @@ class TestErrorHandling:
 
     def test_handle_api_error_429(self):
         """Test handling 429 throttling error."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
 
         mock_response = MagicMock()
         mock_response.status_code = 429
@@ -314,7 +314,7 @@ class TestErrorHandling:
 
     def test_handle_api_error_500(self):
         """Test handling 500 model error."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
 
         mock_response = MagicMock()
         mock_response.status_code = 500
@@ -327,7 +327,7 @@ class TestErrorHandling:
 
     def test_handle_api_error_json_parse_failure(self):
         """Test handling error when JSON parsing fails."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
 
         mock_response = MagicMock()
         mock_response.status_code = 500
@@ -344,7 +344,7 @@ class TestStreamingIntegration:
     @pytest.mark.asyncio
     async def test_stream_non_streaming_mode(self):
         """Test streaming with non-streaming mode."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key", stream=False)
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key", stream=False)
         messages = [{"role": "user", "content": [{"text": "Hello"}]}]
 
         mock_response_data = {
@@ -387,7 +387,7 @@ class TestStreamingIntegration:
     @pytest.mark.asyncio
     async def test_stream_timeout_error(self):
         """Test handling timeout error during streaming."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         messages = [{"role": "user", "content": [{"text": "Hello"}]}]
 
         with patch("httpx.AsyncClient") as mock_client:
@@ -408,7 +408,7 @@ class TestStreamingIntegration:
     @pytest.mark.asyncio
     async def test_stream_request_error(self):
         """Test handling request error during streaming."""
-        model = NovaModel(model_id="nova-pro-v1", api_key="test-key")
+        model = NovaAPIModel(model_id="nova-pro-v1", api_key="test-key")
         messages = [{"role": "user", "content": [{"text": "Hello"}]}]
 
         with patch("httpx.AsyncClient") as mock_client:

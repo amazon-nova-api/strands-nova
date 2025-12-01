@@ -14,10 +14,10 @@ Key Features:
 
 Example:
     Basic usage with an agent:
-        >>> from strands_nova import NovaModel
+        >>> from strands_nova import NovaAPIModel
         >>> from strands import Agent
         >>>
-        >>> model = NovaModel(
+        >>> model = NovaAPIModel(
         ...     model_id="nova-pro-v1",
         ...     api_key="your-api-key"
         ... )
@@ -397,7 +397,7 @@ class NovaMessageFormatter:
 # ==================== Main Model Class ====================
 
 
-class NovaModel(Model):
+class NovaAPIModel(Model):
     """Nova model provider implementation using httpx for direct API access.
 
     This class provides a complete implementation of the Strands Model interface
@@ -411,7 +411,7 @@ class NovaModel(Model):
         config: Model configuration including model_id and parameters.
 
     Example:
-        >>> model = NovaModel(
+        >>> model = NovaAPIModel(
         ...     model_id="nova-pro-v1",
         ...     api_key="your-key",
         ...     params={"temperature": 0.7}
@@ -425,7 +425,7 @@ class NovaModel(Model):
     api_key: str
     timeout: float
 
-    class NovaModelParams(TypedDict, total=False):
+    class NovaAPIModelParams(TypedDict, total=False):
         """Nova API model parameters.
 
         All parameters are optional and will be passed through to the Nova API.
@@ -456,7 +456,7 @@ class NovaModel(Model):
             model_id: Model identifier (required). Examples: "nova-pro-v1", "nova-lite-v2".
                 See https://api.nova.amazon.com/v1/models for available models.
             params: Model parameters dictionary (optional).
-                Supports NovaModelParams fields plus any custom parameters.
+                Supports NovaAPIModelParams fields plus any custom parameters.
         """
 
         model_id: str
@@ -468,7 +468,7 @@ class NovaModel(Model):
         api_key: Optional[str] = None,
         base_url: str = "https://api.nova.amazon.com/v1",
         timeout: float = 300.0,
-        params: Union[NovaModelParams, dict[str, Any], None] = None,
+        params: Union[NovaAPIModelParams, dict[str, Any], None] = None,
         stream: bool = True,
         stream_options: Optional[dict[str, Any]] = None,
         **extra_config: Any,
@@ -480,7 +480,7 @@ class NovaModel(Model):
             api_key: Nova API key. If None, reads from NOVA_API_KEY environment variable.
             base_url: Base URL for Nova API (default: https://api.nova.amazon.com/v1).
             timeout: Request timeout in seconds (default: 300.0). Must be positive.
-            params: Model parameters (optional). Supports typed NovaModelParams or custom dict.
+            params: Model parameters (optional). Supports typed NovaAPIModelParams or custom dict.
             stream: Whether to stream responses (default: True).
             stream_options: Stream options dict (default: {"include_usage": True}).
             **extra_config: Additional configuration options for future extensibility.
@@ -490,7 +490,7 @@ class NovaModel(Model):
 
         Example:
             >>> # With explicit API key
-            >>> model = NovaModel(
+            >>> model = NovaAPIModel(
             ...     model_id="nova-pro-v1",
             ...     api_key="your-key"
             ... )
@@ -498,7 +498,7 @@ class NovaModel(Model):
             >>> # With environment variable
             >>> import os
             >>> os.environ["NOVA_API_KEY"] = "your-key"
-            >>> model = NovaModel(model_id="nova-pro-v1")
+            >>> model = NovaAPIModel(model_id="nova-pro-v1")
         """
         # Validate model_id
         if not model_id or not isinstance(model_id, str):
@@ -588,7 +588,7 @@ class NovaModel(Model):
             **model_config: Configuration overrides (model_id, params, etc.).
 
         Example:
-            >>> model = NovaModel(model_id="nova-pro-v1", api_key="key")
+            >>> model = NovaAPIModel(model_id="nova-pro-v1", api_key="key")
             >>> model.update_config(params={"temperature": 0.9})
             >>> # Temperature is now 0.9 for subsequent requests
         """
@@ -603,12 +603,12 @@ class NovaModel(Model):
             NovaConfig: Current model configuration including model_id and params.
 
         Example:
-            >>> model = NovaModel(model_id="nova-pro-v1", api_key="key")
+            >>> model = NovaAPIModel(model_id="nova-pro-v1", api_key="key")
             >>> config = model.get_config()
             >>> print(config["model_id"])
             'nova-pro-v1'
         """
-        return cast(NovaModel.NovaConfig, self.config)
+        return cast(NovaAPIModel.NovaConfig, self.config)
 
     def _format_request_tool_choice(
         self, tool_choice: ToolChoice | None

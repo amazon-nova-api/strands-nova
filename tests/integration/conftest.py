@@ -13,7 +13,7 @@ import strands
 from dotenv import load_dotenv
 from strands import Agent
 
-from strands_nova import NovaModel
+from amazon_nova import NovaAPIModel
 
 # Load environment variables
 load_dotenv()
@@ -51,7 +51,7 @@ def audio_data_content(pytestconfig):
 
 @pytest.fixture
 def model():
-    return NovaModel(
+    return NovaAPIModel(
         model_id="nova-pro-v1",
         api_key=os.getenv("NOVA_API_KEY"),
     )

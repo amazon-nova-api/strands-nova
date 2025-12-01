@@ -6,7 +6,7 @@ from strands.types.exceptions import (
     ContextWindowOverflowException,
     ModelThrottledException,
 )
-from strands_nova import NovaModel
+from amazon_nova import NovaAPIModel
 from provider_info import nova
 
 pytestmark = nova.mark
@@ -145,7 +145,7 @@ def test_tool_returning_images(model, yellow_img):
 @pytest.mark.skip("Need information on model limits")
 def test_context_window_overflow_integration():
     """Integration test for context window overflow with Nova."""
-    mini_model = NovaModel(
+    mini_model = NovaAPIModel(
         model_id="nova-micro-v1",
         api_key=os.getenv("NOVA_API_KEY"),
     )
@@ -166,7 +166,7 @@ def test_rate_limit_throttling_integration_no_retries():
     """Integration test for rate limit handling with retries disabled."""
     # Patch the event loop constants to disable retries for this test
     with unittest.mock.patch("strands.event_loop.event_loop.MAX_ATTEMPTS", 1):
-        mini_model = NovaModel(
+        mini_model = NovaAPIModel(
             model_id="nova-micro-v1",
             api_key=os.getenv("NOVA_API_KEY"),
         )
