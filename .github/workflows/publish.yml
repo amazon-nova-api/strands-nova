@@ -3,7 +3,6 @@ name: Publish Python distribution to PyPI
 on:
   workflow_dispatch:
 
-
 jobs:
   build:
     name: Build distribution
