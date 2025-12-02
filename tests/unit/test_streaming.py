@@ -10,7 +10,7 @@ from strands.types.exceptions import (
     ContextWindowOverflowException,
     ModelThrottledException,
 )
-from amazon_nova.nova import NovaAPIModel
+from strands_amazon_nova.nova import NovaAPIModel
 
 
 class TestChunkFormatting:

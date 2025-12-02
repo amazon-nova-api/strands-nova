@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "strands-amazon-nova"
-version = "1.0.1"
+version = "1.0.2"
 description = "Amazon Nova API model provider for Strands Agents SDK"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -49,7 +49,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/amazon_nova"]
+packages = ["src/strands_amazon_nova"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

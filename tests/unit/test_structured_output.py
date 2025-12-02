@@ -11,7 +11,7 @@ from strands.types.exceptions import (
     ContextWindowOverflowException,
     ModelThrottledException,
 )
-from amazon_nova.nova import NovaAPIModel
+from strands_amazon_nova.nova import NovaAPIModel
 
 
 class SampleOutputModel(BaseModel):
@@ -38,7 +38,7 @@ class TestStructuredOutputFormatting:
         messages = [{"role": "user", "content": [{"text": "Get user info"}]}]
 
         # Mock convert_pydantic_to_tool_spec
-        with patch("amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert:
+        with patch("strands_amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert:
             mock_convert.return_value = {
                 "name": "SampleOutputModel",
                 "description": "Sample output model",
@@ -98,7 +98,7 @@ class TestStructuredOutputFormatting:
 
         with (
             patch("httpx.AsyncClient") as mock_client,
-            patch("amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
+            patch("strands_amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
         ):
             mock_convert.return_value = {
                 "name": "SampleOutputModel",
@@ -140,7 +140,7 @@ class TestStructuredOutputFormatting:
 
         with (
             patch("httpx.AsyncClient") as mock_client,
-            patch("amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
+            patch("strands_amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
         ):
             mock_convert.return_value = {
                 "name": "SampleOutputModel",
@@ -213,7 +213,7 @@ class TestStructuredOutputFormatting:
 
         with (
             patch("httpx.AsyncClient") as mock_client,
-            patch("amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
+            patch("strands_amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
         ):
             mock_convert.return_value = {
                 "name": "SampleOutputModel",
@@ -257,7 +257,7 @@ class TestStructuredOutputFormatting:
 
         with (
             patch("httpx.AsyncClient") as mock_client,
-            patch("amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
+            patch("strands_amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
         ):
             mock_convert.return_value = {
                 "name": "SampleOutputModel",
@@ -295,7 +295,7 @@ class TestStructuredOutputFormatting:
 
         with (
             patch("httpx.AsyncClient") as mock_client,
-            patch("amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
+            patch("strands_amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
         ):
             mock_convert.return_value = {
                 "name": "SampleOutputModel",
@@ -338,7 +338,7 @@ class TestStructuredOutputFormatting:
 
         with (
             patch("httpx.AsyncClient") as mock_client,
-            patch("amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
+            patch("strands_amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
         ):
             mock_convert.return_value = {
                 "name": "SampleOutputModel",
@@ -393,7 +393,7 @@ class TestStructuredOutputFormatting:
 
         with (
             patch("httpx.AsyncClient") as mock_client,
-            patch("amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
+            patch("strands_amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
         ):
             mock_convert.return_value = {
                 "name": "SampleOutputModel",
@@ -449,7 +449,7 @@ class TestStructuredOutputFormatting:
 
         with (
             patch("httpx.AsyncClient") as mock_client,
-            patch("amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
+            patch("strands_amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
         ):
             mock_convert.return_value = {
                 "name": "SampleOutputModel",
@@ -487,7 +487,7 @@ class TestStructuredOutputFormatting:
 
         with (
             patch("httpx.AsyncClient") as mock_client,
-            patch("amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
+            patch("strands_amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
         ):
             mock_convert.return_value = {
                 "name": "SampleOutputModel",
@@ -517,7 +517,7 @@ class TestStructuredOutputFormatting:
 
         with (
             patch("httpx.AsyncClient") as mock_client,
-            patch("amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
+            patch("strands_amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
         ):
             mock_convert.return_value = {
                 "name": "SampleOutputModel",
@@ -547,7 +547,7 @@ class TestStructuredOutputFormatting:
 
         with (
             patch("httpx.AsyncClient") as mock_client,
-            patch("amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
+            patch("strands_amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
         ):
             mock_convert.return_value = {
                 "name": "SampleOutputModel",
@@ -582,7 +582,7 @@ class TestStructuredOutputFormatting:
 
         with (
             patch("httpx.AsyncClient") as mock_client,
-            patch("amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
+            patch("strands_amazon_nova.nova.convert_pydantic_to_tool_spec") as mock_convert,
         ):
             mock_convert.return_value = {
                 "name": "SampleOutputModel",

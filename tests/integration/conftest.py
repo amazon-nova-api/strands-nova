@@ -13,7 +13,7 @@ import strands
 from dotenv import load_dotenv
 from strands import Agent
 
-from amazon_nova import NovaAPIModel
+from strands_amazon_nova import NovaAPIModel
 
 # Load environment variables
 load_dotenv()

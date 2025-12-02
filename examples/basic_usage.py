@@ -4,7 +4,7 @@
 from dotenv import load_dotenv
 from strands import Agent
 
-from amazon_nova import NovaAPIModel
+from strands_amazon_nova import NovaAPIModel
 
 
 def yellow_img():

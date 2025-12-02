@@ -1603,7 +1603,7 @@ wheels = [
 
 [[package]]
 name = "strands-amazon-nova"
-version = "1.0.0"
+version = "1.0.2"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },

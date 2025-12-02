@@ -4,7 +4,7 @@ import base64
 
 import pytest
 
-from amazon_nova.nova import NovaAPIModel, NovaMessageFormatter
+from strands_amazon_nova.nova import NovaAPIModel, NovaMessageFormatter
 
 
 class TestContentBlockFormatting:

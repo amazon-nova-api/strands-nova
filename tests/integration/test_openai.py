@@ -6,7 +6,7 @@ from strands.types.exceptions import (
     ContextWindowOverflowException,
     ModelThrottledException,
 )
-from amazon_nova import NovaAPIModel
+from strands_amazon_nova import NovaAPIModel
 from provider_info import nova
 
 pytestmark = nova.mark

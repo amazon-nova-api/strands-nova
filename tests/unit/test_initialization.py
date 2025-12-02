@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from amazon_nova.nova import NovaAPIModel
+from strands_amazon_nova.nova import NovaAPIModel
 
 
 class TestNovaModelInitialization:
