@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://test.pypi.org/p/amazon-strands-nova
+      url: https://test.pypi.org/p/strands-amazon-nova
     permissions:
       id-token: write
 
